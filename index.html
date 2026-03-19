@@ -31,6 +31,22 @@
 
 <link rel="stylesheet" href="src/styles/app.css"/>
 
+<!-- Preload funciones críticas para evitar ReferenceError -->
+<script>
+// Asegurar que selectProfile esté disponible antes de que el DOM cargue
+window.selectProfile = function(profile) {
+  console.log('selectProfile llamado:', profile);
+  // Se ejecutará cuando app.js cargue completamente
+  setTimeout(() => {
+    if (typeof window._selectProfileImpl === 'function') {
+      window._selectProfileImpl(profile);
+    } else {
+      console.error('selectProfile no implementado aún');
+    }
+  }, 0);
+};
+</script>
+
 <style>
 /* 
    ESTILOS PWA - APP NATIVA

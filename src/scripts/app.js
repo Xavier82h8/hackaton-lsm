@@ -6,8 +6,8 @@
 /* ============================================================
    0. EXPORTAR FUNCIONES GLOBALES INMEDIATAS
    ============================================================ */
-// Asegurar que las funciones estén disponibles antes de que el DOM cargue
-window.selectProfile = function(profile) {
+// Implementación real de selectProfile (se llama después de que carga app.js)
+window._selectProfileImpl = function(profile) {
   if (typeof stopProfileCountdown === 'function') {
     stopProfileCountdown();
   }
@@ -43,6 +43,14 @@ window.selectProfile = function(profile) {
     }
   }
 };
+
+// Actualizar el wrapper para que use la implementación real
+if (typeof window.selectProfile === 'function') {
+  window.selectProfile = function(profile) {
+    console.log('selectProfile ejecutando:', profile);
+    window._selectProfileImpl(profile);
+  };
+}
 
 /* ============================================================
    1. GESTIÓN DE SESIÓN Y TEMPORIZADOR
