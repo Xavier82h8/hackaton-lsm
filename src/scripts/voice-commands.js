@@ -1,6 +1,5 @@
 /* ============================================================
-   COMANDOS DE VOZ PARA USUARIOS CIEGOS
-   Versión 3.1 - UNIVOZ - Asistente Conversacional con Opción de Omitir
+   Versión 3.2 - UNIVOZ - Asistente Conversacional con Prioridad
    ============================================================ */
 
 let voiceCommandActive = false;
@@ -8,21 +7,20 @@ let recognition = null;
 let isListening = false;
 let isFirstTime = true;
 let currentScreenName = '';
-let assistantSkipped = false;  // Si el usuario omitió el asistente
-let assistantEnabled = true;   // Si el asistente está habilitado (puede ser omitido)
+let assistantSkipped = false;
+let assistantEnabled = true;
 
 // Estado del asistente conversacional
 let assistantState = {
-  isActive: false,           // Si el asistente está guiando activamente
-  currentFlow: null,         // Flujo actual: 'navigation', 'dictation', 'settings', 'help'
-  currentStep: 0,            // Paso actual en el flujo
-  awaitingResponse: false,   // Si está esperando respuesta del usuario
-  context: {},               // Contexto de la conversación
-  lastAction: null,          // Última acción ejecutada
-  errorCount: 0              // Contador de errores para ayuda progresiva
+  isActive: false,
+  currentFlow: null,
+  currentStep: 0,
+  awaitingResponse: false,
+  context: {},
+  lastAction: null,
+  errorCount: 0
 };
 
-// Mapa de nombres de pantallas para anuncios
 const SCREEN_NAMES = {
   0: 'Pantalla de inicio',
   1: 'Selección de perfil',
@@ -44,40 +42,18 @@ const SCREEN_NAMES = {
   17: 'Ajustes modo mudo',
 };
 
-// Respuestas de confirmación del asistente
 const ASSISTANT_RESPONSES = {
-  confirm: [
-    'Entendido',
-    'Perfecto',
-    'Listo',
-    'Hecho',
-    'Completado',
-  ],
-  navigating: [
-    'Navegando a',
-    'Yendo a',
-    'Cambiando a',
-    'Moviendo a',
-  ],
-  error: [
-    'No entendí bien',
-    'Disculpa, no escuché claramente',
-    '¿Podrías repetirlo?',
-    'No estoy segura de haber entendido',
-  ],
-  encouragement: [
-    '¡Excelente!',
-    '¡Muy bien!',
-    '¡Perfecto!',
-    '¡Genial!',
-  ],
+  confirm: ['Entendido', 'Perfecto', 'Listo', 'Hecho', 'Completado'],
+  navigating: ['Navegando a', 'Yendo a', 'Cambiando a', 'Moviendo a'],
+  error: ['No entendí bien', 'Disculpa, no escuché claramente', '¿Podrías repetirlo?', 'No estoy segura de haber entendido'],
+  encouragement: ['¡Excelente!', '¡Muy bien!', '¡Perfecto!', '¡Genial!'],
 };
 
-// Flujos conversacionales por pantalla (priorizando acciones para ciegos)
+// Flujos conversacionales PRIORIZANDO ACCIONES PARA CIEGOS
 const CONVERSATIONAL_FLOWS = {
-  0: { // Inicio - PRIORIDAD: Acceso rápido a dictado para ciegos
+  0: {
     greeting: 'Bienvenido a UNIVOZ. Soy tu asistente de voz. ¿Cómo puedo ayudarte hoy?',
-    priority: ['dictar', 'nota rápida', 'tomar nota'], // Acciones prioritarias para ciegos
+    priority: ['dictar', 'nota rápida', 'tomar nota'],
     options: [
       { keywords: ['dictar', 'nota rápida', 'tomar nota', 'grabar voz'], action: 'goToDictationImmediate', response: 'Abriendo dictado inmediatamente.' },
       { keywords: ['perfil', 'seleccionar', 'elegir'], action: 'goToProfile', response: 'Te llevaré a seleccionar tu perfil de accesibilidad.' },
@@ -87,9 +63,9 @@ const CONVERSATIONAL_FLOWS = {
     ],
     noResponse: 'No he escuchado tu respuesta. Para usuarios ciegos: di "dictar" para tomar nota inmediatamente. También puedes decir: seleccionar perfil, detectar con IA, o pedir ayuda. ¿Qué deseas hacer?',
   },
-  1: { // Selección de perfil
+  1: {
     greeting: 'Estás en selección de perfil. ¿Qué perfil describes mejor para ti?',
-    priority: ['dictar', 'nota rápida'], // Aún en selección, puede necesitar dictar
+    priority: ['dictar', 'nota rápida'],
     options: [
       { keywords: ['ciega', 'ciego', 'no veo', 'visión'], action: 'selectBlind', response: 'Perfil ciego seleccionado. Te guiaré con voz en cada paso.' },
       { keywords: ['sorda', 'sordo', 'no escucho', 'audición'], action: 'selectDeaf', response: 'Perfil sordo seleccionado. Activaré subtítulos y lenguaje de señas.' },
@@ -100,7 +76,7 @@ const CONVERSATIONAL_FLOWS = {
     ],
     noResponse: 'No he escuchado tu respuesta. Puedes decir: soy ciega, soy sorda, soy muda, o soy sordomuda. Si necesitas dictar urgentemente, di "dictar". ¿Cuál describes para ti?',
   },
-  5: { // Inicio modo ciego - PRIORIDAD MÁXIMA: Dictado rápido
+  5: {
     greeting: 'Estás en el inicio de modo ciego. ¿Qué acción deseas realizar?',
     priority: ['dictar', 'nota rápida', 'tomar nota', 'urgente'],
     options: [
@@ -120,7 +96,7 @@ const CONVERSATIONAL_FLOWS = {
     },
     noResponse: 'No he escuchado tu respuesta. Para usuarios ciegos: di "dictar" para tomar nota inmediatamente. También puedes decir: historial, ajustes, ayuda, o leer pantalla. ¿Qué deseas hacer?',
   },
-  6: { // Dictado - PRIORIDAD: Acciones rápidas de dictado
+  6: {
     greeting: 'Estás en dictado de voz. El micrófono está listo. ¿Qué deseas hacer?',
     priority: ['micrófono', 'escuchar', 'copiar'],
     options: [
@@ -136,25 +112,18 @@ const CONVERSATIONAL_FLOWS = {
   },
 };
 
-// Comandos de voz disponibles (simplificados para el asistente)
 const VOICE_COMMANDS = {
   // Navegación principal
-  'inicio': () => {
-    goHome();
-    assistantAnnounce('Regresando al inicio. ' + getScreenGreeting(0));
-  },
+  'inicio': () => { goHome(); assistantAnnounce('Regresando al inicio. ' + getScreenGreeting(0)); },
   'ir a inicio': () => VOICE_COMMANDS['inicio'](),
   'pantalla principal': () => VOICE_COMMANDS['inicio'](),
   'home': () => VOICE_COMMANDS['inicio'](),
 
+  // PRIORIDAD CIEGOS: Dictado inmediato
   'dictar': () => {
-    // PRIORIDAD PARA CIEGOS: Ir directo a dictar sin preguntar
     go(6);
     assistantAnnounce('Abriendo dictado inmediatamente.');
-    setTimeout(() => {
-      toggleBlindMic();
-      announce('Micrófono activado. Comienza a dictar.', 'high');
-    }, 500);
+    setTimeout(() => { toggleBlindMic(); announce('Micrófono activado. Comienza a dictar.', 'high'); }, 500);
   },
   'ir a dictar': () => VOICE_COMMANDS['dictar'](),
   'modo dictado': () => VOICE_COMMANDS['dictar'](),
@@ -163,46 +132,28 @@ const VOICE_COMMANDS = {
 
   'historial': () => {
     const profile = appState.activeProfile;
-    if (profile === 'blind') {
-      go(5);
-      assistantAnnounce('Mostrando historial de transcripciones.');
-    } else {
-      assistantAnnounce('El historial está disponible en modo ciego. ¿Deseas cambiar a modo ciego?');
-      assistantState.awaitingResponse = true;
-      assistantState.currentFlow = 'confirmProfileChange';
-    }
+    if (profile === 'blind') { go(5); assistantAnnounce('Mostrando historial de transcripciones.'); }
+    else { assistantAnnounce('El historial está disponible en modo ciego. ¿Deseas cambiar a modo ciego?'); assistantState.awaitingResponse = true; assistantState.currentFlow = 'confirmProfileChange'; }
   },
   'ir al historial': () => VOICE_COMMANDS['historial'](),
   'ver historial': () => VOICE_COMMANDS['historial'](),
 
-  'ajustes': () => {
-    openSettings();
-    assistantAnnounce('Abriendo configuración.');
-  },
+  'ajustes': () => { openSettings(); assistantAnnounce('Abriendo configuración.'); },
   'ir a ajustes': () => VOICE_COMMANDS['ajustes'](),
   'configuración': () => VOICE_COMMANDS['ajustes'](),
   'opciones': () => VOICE_COMMANDS['ajustes'](),
 
-  'atrás': () => {
-    goBack();
-    assistantAnnounce('Regresando a la pantalla anterior.');
-  },
+  'atrás': () => { goBack(); assistantAnnounce('Regresando a la pantalla anterior.'); },
   'regresar': () => VOICE_COMMANDS['atrás'](),
   'volver': () => VOICE_COMMANDS['atrás'](),
 
   // Acciones de dictado
-  'escuchar': () => {
-    speakBlindText();
-    assistantAnnounce('Leyendo texto en voz alta.');
-  },
+  'escuchar': () => { speakBlindText(); assistantAnnounce('Leyendo texto en voz alta.'); },
   'leer texto': () => VOICE_COMMANDS['escuchar'](),
   'reproducir': () => VOICE_COMMANDS['escuchar'](),
   'leer': () => VOICE_COMMANDS['escuchar'](),
 
-  'copiar': () => {
-    copyBlindText();
-    assistantAnnounce('Texto copiado al portapapeles.');
-  },
+  'copiar': () => { copyBlindText(); assistantAnnounce('Texto copiado al portapapeles.'); },
   'copiar texto': () => VOICE_COMMANDS['copiar'](),
 
   'micrófono': () => {
@@ -215,10 +166,7 @@ const VOICE_COMMANDS = {
   'iniciar dictado': () => {
     if (appState.currentScreen !== 6) {
       go(6);
-      setTimeout(() => {
-        toggleBlindMic();
-        assistantAnnounce('Micrófono activado. Comienza a dictar.');
-      }, 500);
+      setTimeout(() => { toggleBlindMic(); assistantAnnounce('Micrófono activado. Comienza a dictar.'); }, 500);
     } else {
       toggleBlindMic();
       assistantAnnounce('Micrófono activado. Comienza a dictar.');
@@ -226,15 +174,9 @@ const VOICE_COMMANDS = {
   },
 
   // Frases rápidas
-  'necesito ayuda': () => {
-    speakBlindPhrase('Necesito ayuda');
-    assistantAnnounce('Frase de ayuda reproducida.');
-  },
+  'necesito ayuda': () => { speakBlindPhrase('Necesito ayuda'); assistantAnnounce('Frase de ayuda reproducida.'); },
   'ayuda': () => showVoiceHelp(),
-  'emergencia': () => {
-    speakBlindPhrase('Necesito ayuda de emergencia');
-    assistantAnnounce('Frase de emergencia reproducida. ¿Necesitas algo más?');
-  },
+  'emergencia': () => { speakBlindPhrase('Necesito ayuda de emergencia'); assistantAnnounce('Frase de emergencia reproducida. ¿Necesitas algo más?'); },
   'ayuda emergencia': () => VOICE_COMMANDS['emergencia'](),
   'llamar ayuda': () => VOICE_COMMANDS['emergencia'](),
 
@@ -251,7 +193,7 @@ const VOICE_COMMANDS = {
   'qué puedo decir': () => showVoiceHelp(),
   'lista de comandos': () => showVoiceHelp(),
 
-  // Comandos rápidos para ir directo a la acción
+  // Comandos rápidos de perfil
   'ir a ciega': () => { selectProfile('blind'); assistantAnnounce('Perfil ciego seleccionado.'); },
   'ir a sordo': () => { selectProfile('deaf'); assistantAnnounce('Perfil sordo seleccionado.'); },
   'ir a mudo': () => { selectProfile('mute'); assistantAnnounce('Perfil mudo seleccionado.'); },
@@ -271,7 +213,7 @@ const VOICE_COMMANDS = {
   'cómo se usa': () => startInteractiveTutorial(),
   'ayuda inicial': () => startInteractiveTutorial(),
 
-  // Respuestas para flujos conversacionales
+  // Respuestas sí/no
   'sí': () => handleYesNoResponse(true),
   'si': () => handleYesNoResponse(true),
   'yes': () => handleYesNoResponse(true),
@@ -282,7 +224,6 @@ const VOICE_COMMANDS = {
   'cancelo': () => handleYesNoResponse(false),
 };
 
-// Inicializar reconocimiento de voz
 function initVoiceRecognition() {
   if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
     console.log('Reconocimiento de voz no soportado');
@@ -297,19 +238,12 @@ function initVoiceRecognition() {
 
   recognition.onstart = () => {
     isListening = true;
-    // Actualizar UI para mostrar que está escuchando
-    if (typeof updateAssistantUI === 'function') {
-      updateAssistantUI();
-    }
+    if (typeof updateAssistantUI === 'function') updateAssistantUI();
   };
 
   recognition.onend = () => {
     isListening = false;
-    // Actualizar UI
-    if (typeof updateAssistantUI === 'function') {
-      updateAssistantUI();
-    }
-    // Reiniciar escucha si el asistente está activo y no está esperando respuesta
+    if (typeof updateAssistantUI === 'function') updateAssistantUI();
     if (voiceCommandActive && !assistantState.awaitingResponse) {
       setTimeout(() => startListening(), 500);
     }
@@ -325,12 +259,10 @@ function initVoiceRecognition() {
     console.error('Error en reconocimiento de voz:', event.error);
     isListening = false;
     if (event.error === 'no-speech') {
-      // Solo anunciar si no está en un flujo conversacional
       if (!assistantState.awaitingResponse) {
         announce('No escuché nada. ¿Podrías repetirlo?', 'normal');
       }
       assistantState.errorCount++;
-      // Después de 3 errores, ofrecer ayuda
       if (assistantState.errorCount >= 3) {
         announce('Parece que hay dificultades. Di "ayuda" para ver las opciones disponibles.', 'normal');
         assistantState.errorCount = 0;
@@ -343,40 +275,29 @@ function initVoiceRecognition() {
   return true;
 }
 
-// Procesar comando de voz con contexto conversacional
 function processVoiceCommand(command) {
   console.log('Procesando comando:', command);
 
-  // Si está esperando respuesta de sí/no
   if (assistantState.awaitingResponse) {
-    // Verificar primero los comandos de respuesta
     const yesCommands = ['sí', 'si', 'yes', 'correcto', 'confirmo', 'acepto', 'ok', 'bueno', 'dale', 'va'];
     const noCommands = ['no', 'incorrecto', 'cancelo', 'rechazo', 'nunca', 'jamás', 'jamas'];
-    
+
     const isYes = yesCommands.some(cmd => command.includes(cmd));
     const isNo = noCommands.some(cmd => command.includes(cmd));
-    
-    if (isYes) {
-      handleYesNoResponse(true);
-      return;
-    } else if (isNo) {
-      handleYesNoResponse(false);
-      return;
-    }
-    
-    // Si no es respuesta válida, repetir pregunta
+
+    if (isYes) { handleYesNoResponse(true); return; }
+    else if (isNo) { handleYesNoResponse(false); return; }
+
     announce('No entendí tu respuesta. ¿Podrías decir sí o no?', 'normal');
     return;
   }
 
-  // Buscar comando exacto
   if (VOICE_COMMANDS[command]) {
     VOICE_COMMANDS[command]();
-    assistantState.errorCount = 0; // Resetear contador de errores
+    assistantState.errorCount = 0;
     return;
   }
 
-  // Buscar comandos parciales
   for (const [key, action] of Object.entries(VOICE_COMMANDS)) {
     if (command.includes(key)) {
       action();
@@ -385,7 +306,6 @@ function processVoiceCommand(command) {
     }
   }
 
-  // Verificar flujos conversacionales por pantalla
   const screenFlow = CONVERSATIONAL_FLOWS[appState.currentScreen];
   if (screenFlow) {
     for (const option of screenFlow.options) {
@@ -399,15 +319,12 @@ function processVoiceCommand(command) {
     }
   }
 
-  // Comando no reconocido
   const randomError = ASSISTANT_RESPONSES.error[Math.floor(Math.random() * ASSISTANT_RESPONSES.error.length)];
   announce(`${randomError}. Di "ayuda" para ver las opciones disponibles.`, 'normal');
   assistantState.errorCount++;
 }
 
-// Ejecutar acción de flujo conversacional
 function executeFlowAction(option) {
-  // Ejecutar acción según el tipo
   switch (option.action) {
     case 'goToProfile':
       go(1);
@@ -421,26 +338,19 @@ function executeFlowAction(option) {
       showVoiceHelp();
       break;
     case 'goToDictation':
-      // Ir a dictado con pregunta de seguimiento (micrófono sí/no)
       assistantState.awaitingResponse = true;
       assistantState.currentFlow = 'followUp';
       assistantState.context.followUpType = 'goToDictation';
       assistantAnnounce(option.response);
       setTimeout(() => {
         const followUp = CONVERSATIONAL_FLOWS[appState.currentScreen]?.followUp?.['goToDictation'];
-        if (followUp) {
-          announce(followUp.question, 'high');
-        }
+        if (followUp) announce(followUp.question, 'high');
       }, 1000);
       break;
     case 'goToDictationImmediate':
-      // Ir a dictado INMEDIATAMENTE sin preguntar - PRIORIDAD PARA CIEGOS
       go(6);
       assistantAnnounce(option.response + ' Activando micrófono.');
-      setTimeout(() => {
-        toggleBlindMic();
-        announce('Micrófono activado. Comienza a dictar.', 'high');
-      }, 500);
+      setTimeout(() => { toggleBlindMic(); announce('Micrófono activado. Comienza a dictar.', 'high'); }, 500);
       break;
     case 'goToHistory':
       go(5);
@@ -498,14 +408,12 @@ function executeFlowAction(option) {
   }
 }
 
-// Manejar respuestas de sí/no
 function handleYesNoResponse(isYes) {
   assistantState.awaitingResponse = false;
 
   if (assistantState.currentFlow === 'followUp') {
     const followUpType = assistantState.context.followUpType;
     const followUp = CONVERSATIONAL_FLOWS[appState.currentScreen]?.followUp?.[followUpType];
-
     if (followUp) {
       if (isYes) {
         const randomConfirm = ASSISTANT_RESPONSES.confirm[Math.floor(Math.random() * ASSISTANT_RESPONSES.confirm.length)];
@@ -519,33 +427,22 @@ function handleYesNoResponse(isYes) {
     assistantState.currentFlow = null;
     assistantState.context = {};
   } else if (assistantState.currentFlow === 'confirmProfileChange') {
-    if (isYes) {
-      selectProfile('blind');
-      announce('Cambiando a modo ciego.', 'high');
-    } else {
-      announce('Entendido. Permanecemos en el perfil actual.', 'normal');
-    }
+    if (isYes) { selectProfile('blind'); announce('Cambiando a modo ciego.', 'high'); }
+    else { announce('Entendido. Permanecemos en el perfil actual.', 'normal'); }
     assistantState.currentFlow = null;
   } else if (assistantState.currentFlow === 'tutorialComplete') {
-    if (isYes) {
-      announce('¡Excelente! Comencemos a usar UNIVOZ.', 'high');
-    } else {
-      announce('Está bien. Cuando estés listo, di "activar voz" para comenzar.', 'normal');
-      disableAssistant();
-      return;
-    }
+    if (isYes) { announce('¡Excelente! Comencemos a usar UNIVOZ.', 'high'); }
+    else { announce('Está bien. Cuando estés listo, di "activar voz" para comenzar.', 'normal'); disableAssistant(); return; }
     assistantState.currentFlow = null;
   }
 }
 
-// Activar asistente conversacional (nueva versión)
 function enableAssistant() {
   if (!recognition && !initVoiceRecognition()) {
     announce('El reconocimiento de voz no está disponible en este dispositivo.', 'high');
     return;
   }
 
-  // Si estaba omitido, reactivar
   if (assistantSkipped) {
     assistantSkipped = false;
     assistantEnabled = true;
@@ -554,7 +451,6 @@ function enableAssistant() {
 
   voiceCommandActive = true;
   assistantState.isActive = true;
-  
   updateAssistantUI();
 
   const greeting = getScreenGreeting(appState.currentScreen);
@@ -562,38 +458,29 @@ function enableAssistant() {
   startListening();
 }
 
-// Desactivar asistente
 function disableAssistant() {
   voiceCommandActive = false;
   assistantState.isActive = false;
   assistantState.awaitingResponse = false;
-  if (recognition && isListening) {
-    recognition.stop();
-  }
+  if (recognition && isListening) recognition.stop();
   updateAssistantUI();
   announce('Asistente desactivado. Para reactivar, di "activar voz" o toca el indicador.', 'normal');
 }
 
-// Alternar asistente
 function toggleAssistant() {
-  if (voiceCommandActive) {
-    disableAssistant();
-  } else {
-    enableAssistant();
-  }
+  if (voiceCommandActive) disableAssistant();
+  else enableAssistant();
 }
 
-// Obtener saludo por pantalla (priorizando acciones para ciegos)
 function getScreenGreeting(screenNumber) {
   const flow = CONVERSATIONAL_FLOWS[screenNumber];
   if (flow) {
-    // Agregar mención de dictado urgente en el saludo
     if (screenNumber === 0 || screenNumber === 5) {
       return flow.greeting + ' Para dictar urgentemente, di "dictar".';
     }
     return flow.greeting;
   }
-  
+
   const defaultGreetings = {
     0: 'Bienvenido a UNIVOZ. Soy tu asistente de voz. ¿Cómo puedo ayudarte hoy? Para dictar, di "dictar".',
     1: 'Estás en selección de perfil. ¿Qué perfil describes mejor para ti? Si necesitas dictar, di "dictar".',
@@ -614,106 +501,68 @@ function getScreenGreeting(screenNumber) {
     16: 'Ajustes de modo sordo.',
     17: 'Ajustes de modo mudo.',
   };
-  
+
   return defaultGreetings[screenNumber] || 'Bienvenido a UNIVOZ.';
 }
 
-// Anunciar con estilo de asistente
 function assistantAnnounce(text) {
-  // Cancelar anuncios anteriores de prioridad normal
-  if ('speechSynthesis' in window) {
-    speechSynthesis.cancel();
-  }
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
   announce(text, 'high');
 }
 
-// Iniciar escucha
 function startListening() {
   if (!voiceCommandActive || !recognition || isListening) return;
-  
-  try {
-    recognition.start();
-  } catch (e) {
-    console.error('Error al iniciar reconocimiento:', e);
-  }
+  try { recognition.start(); } catch (e) { console.error('Error al iniciar reconocimiento:', e); }
 }
 
-// Detener escucha
 function stopListening() {
   if (recognition && isListening) {
-    try {
-      recognition.stop();
-    } catch (e) {
-      console.error('Error al detener reconocimiento:', e);
-    }
+    try { recognition.stop(); } catch (e) { console.error('Error al detener reconocimiento:', e); }
   }
 }
 
-// Mostrar ayuda de comandos (versión conversacional - priorizando ciegos)
 function showVoiceHelp() {
   const screen = appState.currentScreen;
   const flow = CONVERSATIONAL_FLOWS[screen];
 
-  let helpText = 'Ayuda de UNIVOZ. ';
-
-  // PRIORIDAD PARA CIEGOS: Mostrar primero comandos de dictado
-  helpText += 'Para dictar urgentemente, di: "dictar", "tomar nota", o "nota rápida". ';
+  let helpText = 'Ayuda de UNIVOZ. Para dictar urgentemente, di: "dictar", "tomar nota", o "nota rápida". ';
 
   if (flow) {
     helpText += 'En esta pantalla también puedes decir: ';
-    // Filtrar y mostrar primero las acciones prioritarias
     const priorityActions = flow.priority || [];
     const otherActions = flow.options
       .filter(opt => !priorityActions.some(p => opt.keywords.includes(p)))
       .map(opt => opt.keywords[0]);
-    
-    const allActions = [...priorityActions, ...otherActions].join(', ');
-    helpText += allActions + '. ';
+
+    helpText += [...priorityActions, ...otherActions].join(', ') + '. ';
   }
 
-  helpText += 'Comandos globales: inicio, ajustes, atrás, emergencia. ';
-  helpText += '¿Qué deseas hacer?';
+  helpText += 'Comandos globales: inicio, ajustes, atrás, emergencia. ¿Qué deseas hacer?';
 
   announce(helpText, 'high');
   console.log('Ayuda:', helpText);
-
-  // Reactivar escucha después de la ayuda
-  setTimeout(() => {
-    if (voiceCommandActive) {
-      startListening();
-    }
-  }, 1000);
+  setTimeout(() => { if (voiceCommandActive) startListening(); }, 1000);
 }
 
-// Anunciar texto con síntesis de voz
 function announce(text, priority = 'normal') {
   if (!('speechSynthesis' in window)) return;
-  
-  // Cancelar anuncios anteriores si es prioridad alta
-  if (priority === 'high') {
-    speechSynthesis.cancel();
-  }
-  
+  if (priority === 'high') speechSynthesis.cancel();
+
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = 'es-ES';
-  utterance.rate = 0.9; // Un poco más lento para claridad
+  utterance.rate = 0.9;
   utterance.pitch = 1;
   utterance.volume = 1;
-  
   speechSynthesis.speak(utterance);
 }
 
-// Anunciar cambios de pantalla
 function announceScreenChange(screenNumber) {
   const screenName = SCREEN_NAMES[screenNumber] || 'Pantalla';
   currentScreenName = screenName;
-  
-  // Anunciar nombre de pantalla y acciones disponibles
   const actions = getAvailableActions(screenNumber);
   announce(`${screenName}. ${actions}`, 'high');
 }
 
-// Obtener acciones disponibles por pantalla
 function getAvailableActions(screenNumber) {
   const actions = {
     0: 'Para comenzar, selecciona tu perfil o usa detección con IA',
@@ -738,16 +587,13 @@ function getAvailableActions(screenNumber) {
   return actions[screenNumber] || '';
 }
 
-// Anunciar pantalla actual
 function announceCurrentScreen() {
   const screenNum = appState.currentScreen;
   const screenName = SCREEN_NAMES[screenNum] || 'Pantalla desconocida';
   const actions = getAvailableActions(screenNum);
-  
   announce(`${screenName}. ${actions}`, 'high');
 }
 
-// Tutorial interactivo guiado (nueva versión conversacional)
 function startInteractiveTutorial() {
   disableAssistant();
 
@@ -778,7 +624,6 @@ function startInteractiveTutorial() {
     if (currentStep.pause > 0) {
       setTimeout(playNextStep, currentStep.pause);
     } else {
-      // Última paso - esperar respuesta
       assistantState.awaitingResponse = true;
       assistantState.currentFlow = 'tutorialComplete';
     }
@@ -787,25 +632,14 @@ function startInteractiveTutorial() {
   playNextStep();
 }
 
-// Manejar final del tutorial
-function handleTutorialComplete() {
-  assistantState.awaitingResponse = false;
-  assistantState.currentFlow = null;
-  announce('¡Comencemos! ¿Qué deseas hacer?', 'high');
-}
-
-// Guía contextual inteligente
 function smartGuide() {
   const screen = appState.currentScreen;
-  
-  // Usar los flujos conversacionales si existen
   const flow = CONVERSATIONAL_FLOWS[screen];
   if (flow) {
     announce(flow.greeting, 'normal');
     return;
   }
 
-  // Guías específicas por pantalla (fallback)
   const guides = {
     0: 'Bienvenido a UNIVOZ. Para comenzar, selecciona tu perfil diciendo "selección de perfil" o usa detección con IA diciendo "detectar perfil".',
     1: 'Estás en selección de perfil. Di "soy ciega" para perfil ciego, "soy sorda" para perfil sordo, o "soy muda" para perfil mudo.',
@@ -813,25 +647,17 @@ function smartGuide() {
     6: 'Estás en dictado de voz. Di "micrófono" para activar la grabación, "escuchar" para escuchar lo transcrito, o "copiar" para copiar el texto.',
   };
 
-  if (guides[screen]) {
-    announce(guides[screen], 'normal');
-  }
+  if (guides[screen]) announce(guides[screen], 'normal');
 }
 
-// Inicializar sistema de voz (versión mejorada con opción de omitir)
 function initVoiceSystem() {
   if (initVoiceRecognition()) {
     console.log('Sistema de voz inicializado correctamente');
-
-    // Mostrar botón de omitir y indicador
     updateAssistantUI();
 
-    // Verificar si es la primera vez
     const hasVisitedBefore = localStorage.getItem('univoz_visited');
-    const hasSkippedAssistant = localStorage.getItem('univoz_assistant_skipped');
 
     if (!hasVisitedBefore) {
-      // Primera visita - ofrecer tutorial
       setTimeout(() => {
         if (!assistantSkipped) {
           announce('Bienvenido a UNIVOZ. Esta es tu primera vez aquí. Soy tu asistente de voz. ¿Te gustaría escuchar un tutorial rápido? Di "tutorial" para comenzar o "omitir" para continuar.', 'normal');
@@ -840,7 +666,6 @@ function initVoiceSystem() {
         isFirstTime = false;
       }, 2500);
     } else {
-      // Visita recurrente
       setTimeout(() => {
         if (!assistantSkipped && assistantEnabled) {
           announce('UNIVOZ está lista. Soy tu asistente de voz. Di "activar voz" para comenzar o toca el botón de micrófono.', 'normal');
@@ -850,84 +675,58 @@ function initVoiceSystem() {
   }
 }
 
-// Actualizar UI del asistente (botón e indicador)
 function updateAssistantUI() {
   const skipBtn = document.getElementById('skipAssistantBtn');
   const indicator = document.getElementById('assistantIndicator');
-  
-  if (skipBtn) {
-    skipBtn.style.display = assistantEnabled ? 'block' : 'none';
-  }
-  
+
+  if (skipBtn) skipBtn.style.display = assistantEnabled ? 'block' : 'none';
   if (indicator) {
     indicator.style.display = voiceCommandActive ? 'flex' : 'none';
-    
     if (voiceCommandActive) {
       indicator.classList.add('active');
-      if (isListening) {
-        indicator.classList.add('listening');
-      } else {
-        indicator.classList.remove('listening');
-      }
+      if (isListening) indicator.classList.add('listening');
+      else indicator.classList.remove('listening');
     } else {
       indicator.classList.remove('active', 'listening');
     }
   }
 }
 
-// Omitir asistente (para usuarios que pueden ver)
 function skipAssistant() {
   assistantSkipped = true;
   assistantEnabled = false;
   voiceCommandActive = false;
   assistantState.isActive = false;
-  
-  if (recognition && isListening) {
-    recognition.stop();
-  }
-  
+  if (recognition && isListening) recognition.stop();
   localStorage.setItem('univoz_assistant_skipped', 'true');
-  
-  // Ocultar botón e indicador
   updateAssistantUI();
-  
   console.log('Asistente omitido - Modo lectura activado');
   announce('Asistente omitido. Modo lectura activado. Puedes reactivarlo en cualquier momento diciendo "activar asistente".', 'normal');
 }
 
-// Reactivar asistente (comando de voz o botón)
 function enableAssistantAgain() {
   assistantSkipped = false;
   assistantEnabled = true;
   localStorage.removeItem('univoz_assistant_skipped');
-  
   updateAssistantUI();
-  
   announce('Asistente reactivado. ¿Qué deseas hacer?', 'high');
   enableAssistant();
 }
 
-// Alternar asistente desde el indicador
 function toggleAssistantFromIndicator() {
-  if (voiceCommandActive) {
-    disableAssistant();
-  } else {
-    enableAssistant();
-  }
+  if (voiceCommandActive) disableAssistant();
+  else enableAssistant();
   updateAssistantUI();
 }
 
-// Integrar con función go() para anunciar cambios de pantalla
 function announceNavigation(screenNumber) {
-  // Si el asistente fue omitido, no anunciar
   if (assistantSkipped) return;
-  
+
   if (voiceCommandActive) {
     setTimeout(() => {
       const screenName = SCREEN_NAMES[screenNumber] || 'Pantalla';
       const flow = CONVERSATIONAL_FLOWS[screenNumber];
       const greeting = flow ? flow.greeting : '';
-
       if (greeting) {
         announce(`Llegando a ${screenName}. ${greeting}`, 'high');
       } else {
@@ -937,24 +736,17 @@ function announceNavigation(screenNumber) {
   }
 }
 
-// Funciones helper que necesitan las apps (para flujos conversacionales)
+// Funciones helper
 function selectProfile(profile) {
-  // Esta función debe existir en app.js, solo es un wrapper
-  if (typeof window.selectProfile === 'function') {
-    window.selectProfile(profile);
-  } else {
-    console.log('selectProfile no está definida, usando perfil:', profile);
-  }
+  if (typeof window.selectProfile === 'function') window.selectProfile(profile);
+  else console.log('selectProfile no está definida, usando perfil:', profile);
 }
 
 function startProfileDetection() {
-  if (typeof window.startProfileDetection === 'function') {
-    window.startProfileDetection();
-  }
+  if (typeof window.startProfileDetection === 'function') window.startProfileDetection();
 }
 
 function openSettings() {
-  // Abrir ajustes según el perfil activo
   const profile = appState.activeProfile;
   if (profile === 'blind') go(15);
   else if (profile === 'deaf') go(16);
@@ -963,60 +755,47 @@ function openSettings() {
 }
 
 function isBlindMicActive() {
-  // Verificar si el micrófono está activo
   return appState.blind?.micActive || false;
 }
 
 function toggleBlindMic() {
-  if (typeof window.toggleBlindMic === 'function') {
-    window.toggleBlindMic();
-  }
+  if (typeof window.toggleBlindMic === 'function') window.toggleBlindMic();
 }
 
 function speakBlindText() {
-  if (typeof window.speakBlindText === 'function') {
-    window.speakBlindText();
-  }
+  if (typeof window.speakBlindText === 'function') window.speakBlindText();
 }
 
 function copyBlindText() {
-  if (typeof window.copyBlindText === 'function') {
-    window.copyBlindText();
-  }
+  if (typeof window.copyBlindText === 'function') window.copyBlindText();
 }
 
 function clearBlindText() {
-  // Limpiar el texto de dictado
-  const blindText = document.getElementById('blind-text');
+  const blindText = document.getElementById('blindOutput');
   if (blindText) {
-    blindText.value = '';
-    appState.blind.text = '';
+    blindText.textContent = '';
+    if (appState.blind) appState.blind.text = '';
   }
 }
 
 function speakBlindPhrase(phrase) {
-  if (typeof window.speakBlindPhrase === 'function') {
-    window.speakBlindPhrase(phrase);
-  }
+  if (typeof window.speakBlindPhrase === 'function') window.speakBlindPhrase(phrase);
 }
 
-function goHome() {
-  go(0);
-}
+function goHome() { go(0); }
 
 function goBack() {
-  // Implementación básica de atrás
   const screenHistory = appState.screenHistory || [];
   if (screenHistory.length > 1) {
-    screenHistory.pop(); // Remover actual
+    screenHistory.pop();
     const previous = screenHistory[screenHistory.length - 1];
     go(previous);
   } else {
-    go(0); // Ir a inicio si no hay historial
+    go(0);
   }
 }
 
-// Exportar funciones globales (nombres actualizados para compatibilidad)
+// Exportar funciones globales
 window.enableVoiceCommands = enableAssistant;
 window.disableVoiceCommands = disableAssistant;
 window.toggleVoiceCommands = toggleAssistant;
