@@ -1,13 +1,14 @@
 ﻿window.NAV_CONFIG = {
-  TOTAL_SCREENS: 18,
+  TOTAL_SCREENS: 20,
   PROFILE_SCREENS: {
     blind: [4, 5, 6],
     deaf: [7, 8, 9, 10, 11],
     mute: [12, 13, 14],
+    deafblind: [18, 19],
   },
-  PROFILE_HOME: { blind: 5, deaf: 8, mute: 13 },
-  PROFILE_CONFIG: { blind: 4, deaf: 7, mute: 12 },
-  PROFILE_SETTINGS: { blind: 15, deaf: 16, mute: 17 },
+  PROFILE_HOME: { blind: 5, deaf: 8, mute: 13, deafblind: 19 },
+  PROFILE_CONFIG: { blind: 4, deaf: 7, mute: 12, deafblind: 18 },
+  PROFILE_SETTINGS: { blind: 15, deaf: 16, mute: 17, deafblind: 15 },
 };
 
 /* ============================================================

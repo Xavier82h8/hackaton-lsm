@@ -1204,7 +1204,144 @@ input, textarea, .editable {
     <div class="bni on"><span class="mi fill">settings</span><span class="lbl">Ajustes</span></div>
   </div>
 </div>
+
+<!-- ════════════════════════════════════════
+     sc18 · CONFIGURACIÓN SORDOMUDO
+     ════════════════════════════════════════ -->
+<div class="screen" id="sc18" style="background:var(--surf);">
+  <div class="hdr">
+    <div class="back-btn" onclick="go(1)"><span class="mi sm" style="color:var(--t2);">arrow_back</span></div>
+    <svg class="logo-topbar" viewBox="0 0 60 60" fill="none">
+      <circle cx="30" cy="30" r="30" fill="#EEF0FF"/>
+      <g transform="translate(6,8)">
+        <rect x="10" y="14" width="7" height="22" rx="3.5" fill="#F7D96B"/>
+        <rect x="18" y="9" width="6" height="20" rx="3" fill="#F7D96B"/>
+        <rect x="25" y="11" width="6" height="18" rx="3" fill="#F7D96B"/>
+        <rect x="32" y="14" width="6" height="15" rx="3" fill="#F7D96B"/>
+        <rect x="8" y="22" width="30" height="14" rx="6" fill="#F7D96B"/>
+      </g>
+      <g transform="translate(22,12)">
+        <path d="M14 2C8 2 2 8 2 16C2 24 8 30 14 30C16 30 18 29 19 27L17 25C16 26 15 27 14 27C10 27 5 22 5 16C5 10 10 5 14 5C18 5 23 10 23 16L26 16C26 8 21 2 14 2Z" fill="#7BBFEA"/>
+        <path d="M14 10C11 10 8 13 8 16C8 19 10 21 12 22L14 19C13 18 11 17 11 16C11 14 12 13 14 13C16 13 17 14 17 16C17 18 15 19 15 21L18 21C19 19 20 17 20 16C20 13 17 10 14 10Z" fill="#4FA8D8"/>
+      </g>
+    </svg>
+    <div style="width:36px;"></div>
+  </div>
+  <div class="scroll-content" style="padding:6px 20px 20px;">
+    <div class="pbadge" style="background:var(--pri-ll);color:var(--pri-c);border:1.5px solid var(--pri-br);border-radius:var(--pill);padding:4px 10px;font-size:10px;font-weight:700;display:inline-flex;align-items:center;gap:4px;margin-bottom:12px;">
+      <span class="mi sm fill" style="color:var(--pri-c);">sign_language</span> Perfil: Persona sordomuda
+    </div>
+    <h2 style="font-family:var(--fns);font-size:20px;color:var(--t1);margin-bottom:5px;">Todo listo para ti</h2>
+    <p style="font-size:12px;color:var(--t2);line-height:1.6;margin-bottom:14px;">Activé señas LSM, texto visual y comunicación bidireccional.</p>
+
+    <div class="wcard" style="margin-bottom:12px;">
+      <div class="pref-row">
+        <div class="pref-ico" style="background:var(--pri-ll);"><span class="mi fill" style="color:var(--pri-c);">sign_language</span></div>
+        <div style="flex:1;">
+          <div class="pref-nm">Avatar LSM 3D</div>
+          <div class="pref-ds">Traduce texto a señas en tiempo real</div>
+        </div>
+        <div class="tog" style="background:var(--pri-c);box-shadow:0 2px 6px var(--pri-sh);"></div>
+      </div>
+      <div class="pref-row">
+        <div class="pref-ico" style="background:var(--pri-ll);"><span class="mi fill" style="color:var(--pri-c);">keyboard</span></div>
+        <div style="flex:1;">
+          <div class="pref-nm">Teclado visual</div>
+          <div class="pref-ds">Escribe para comunicarte rápidamente</div>
+        </div>
+        <div class="tog" style="background:var(--pri-c);box-shadow:0 2px 6px var(--pri-sh);"></div>
+      </div>
+      <div class="pref-row">
+        <div class="pref-ico" style="background:var(--pri-ll);"><span class="mi fill" style="color:var(--pri-c);">videocam</span></div>
+        <div style="flex:1;">
+          <div class="pref-nm">Cámara para señas</div>
+          <div class="pref-ds">Muestra tus manos para comunicación visual</div>
+        </div>
+        <div class="tog" onclick="toggleCamera()"></div>
+      </div>
+      <div class="pref-row">
+        <div class="pref-ico" style="background:var(--surf2);"><span class="mi" style="color:var(--t3);">subtitles</span></div>
+        <div style="flex:1;">
+          <div class="pref-nm">Subtítulos opcionales</div>
+          <div class="pref-ds">Texto de apoyo para lo que escuchas</div>
+        </div>
+        <div class="tog off"></div>
+      </div>
+    </div>
+
+    <button class="btn-p" onclick="go(19)" style="background:var(--pri-c);box-shadow:0 4px 18px var(--pri-sh);">
+      <span class="mi sm fill" style="color:#fff;">check_circle</span> Entrar a UNIVOZ
+    </button>
+  </div>
 </div>
+
+<!-- ════════════════════════════════════════
+     sc19 · HOME SORDOMUDO
+     ════════════════════════════════════════ -->
+<div class="screen" id="sc19" style="background:var(--bg);">
+  <div style="background:var(--surf);border-bottom:1.5px solid var(--pri-br);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="width:36px;height:36px;border-radius:12px;background:var(--pri-ll);display:flex;align-items:center;justify-content:center;">
+        <span class="mi fill" style="color:var(--pri-c);">sign_language</span>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--t3);font-weight:500;">Modo Sordomudo activo</div>
+        <div style="font-size:14px;font-weight:700;color:var(--t1);">Hola, bienvenida/o</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="background:var(--pri-ll);border:1.5px solid var(--pri-br);border-radius:var(--pill);padding:3px 9px;font-size:10px;font-weight:700;color:var(--pri-c);display:flex;align-items:center;gap:4px;">
+        <span style="width:6px;height:6px;border-radius:50%;background:#10B981;display:inline-block;animation:blink 2s ease-in-out infinite;"></span>LSM ON
+      </div>
+      <div class="back-btn" onclick="openSettings()"><span class="mi sm" style="color:var(--pri-c);">settings</span></div>
+    </div>
+  </div>
+
+  <div class="scroll-content" style="padding:12px 16px;">
+    <div class="mode-card normal-card" onclick="go(10)" style="padding:16px 14px;margin-bottom:12px;cursor:pointer;">
+      <div class="mode-ico normal-ico" style="background:var(--green-l);">
+        <span class="mi fill" style="color:var(--green);font-size:22px;">sign_language</span>
+      </div>
+      <div>
+        <div class="mode-lbl">Avatar LSM 3D</div>
+        <div class="mode-sub">Señas en tiempo real</div>
+      </div>
+      <div class="mode-act" style="color:var(--green);">USAR →</div>
+    </div>
+
+    <div class="mode-card" onclick="go(14)" style="padding:16px 14px;margin-bottom:12px;cursor:pointer;border-color:var(--mute-br);">
+      <div class="mode-ico" style="background:var(--mute-l);">
+        <span class="mi fill" style="color:var(--mute-c);font-size:22px;">keyboard</span>
+      </div>
+      <div>
+        <div class="mode-lbl">Teclado Visual</div>
+        <div class="mode-sub">Escribe para comunicarte</div>
+      </div>
+      <div class="mode-act" style="color:var(--mute-c);">USAR →</div>
+    </div>
+
+    <div class="wcard">
+      <div style="font-size:11px;font-weight:700;color:var(--t1);margin-bottom:8px;">Comunicación rápida</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <button onclick="showDeafblindPhrase('Hola, ¿cómo estás?')" style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--pri-ll);border:1px solid var(--pri-br);border-radius:var(--r-sm);font-size:12px;color:var(--pri-c);font-family:var(--fn);cursor:pointer;font-weight:500;">
+          <span class="mi sm" style="color:var(--pri-c);">chat</span>Hola, ¿cómo estás?
+        </button>
+        <button onclick="showDeafblindPhrase('Necesito ayuda')" style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:#FEF2F2;border:1.5px solid rgba(239,68,68,0.3);border-radius:var(--r-sm);font-size:12px;color:#DC2626;font-family:var(--fn);cursor:pointer;font-weight:600;">
+          <span class="mi sm" style="color:#DC2626;">emergency</span>EMERGENCIA
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bnav">
+    <div class="bni on" style="--pri-c:var(--pri-c);"><span class="mi fill" style="color:var(--pri-c);">home</span><span class="lbl" style="color:var(--pri-c);">Inicio</span></div>
+    <div class="bni" onclick="go(10)"><span class="mi">sign_language</span><span class="lbl">LSM</span></div>
+    <div class="bni" onclick="go(14)"><span class="mi">keyboard</span><span class="lbl">Teclado</span></div>
+    <div class="bni" onclick="openSettings()"><span class="mi">settings</span><span class="lbl">Ajustes</span></div>
+  </div>
+</div>
+
+</div> <!-- Fin app-container -->
 
 
 <script src="src/scripts/navigation.js"></script>

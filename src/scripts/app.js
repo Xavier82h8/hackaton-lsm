@@ -11,30 +11,35 @@ window.selectProfile = function(profile) {
   if (typeof stopProfileCountdown === 'function') {
     stopProfileCountdown();
   }
-  
+
   const profileMap = {
     'blind': { screen: 4 },
     'deaf': { screen: 7 },
     'mute': { screen: 12 },
-    'deafblind': { screen: 4 }
+    'deafblind': { screen: 18 }  // Pantalla específica para sordomudo
   };
-  
+
   const config = profileMap[profile];
   if (config) {
     if (typeof selP === 'function') {
       selP(profile === 'deafblind' ? 'db' : profile[0]);
     }
-    
+
     if (typeof appState !== 'undefined') {
       appState.activeProfile = profile;
     }
-    
+
     if (typeof go === 'function') {
       go(config.screen);
     }
-    
+
     if (typeof saveSession === 'function') {
       saveSession(config.screen);
+    }
+    
+    // Anunciar perfil seleccionado
+    if (typeof announce === 'function' && profile === 'deafblind') {
+      announce('Perfil sordomudo seleccionado. Navegando a configuración de señas LSM y texto.');
     }
   }
 };
@@ -664,6 +669,95 @@ function addToTranscribeHistory(text) {
   // Placeholder para historial
 }
 
+/* ============================================================
+   11. FUNCIONES PARA PERFIL SORDOMUDO
+   ============================================================ */
+function showDeafblindPhrase(text) {
+  // Mostrar texto en pantalla grande para comunicación visual
+  if ('speechSynthesis' in window) {
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang = 'es-ES';
+    speechSynthesis.speak(utt);
+  }
+  
+  // Crear overlay con texto grande
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;padding:40px;cursor:pointer;';
+  overlay.innerHTML = '<div style="font-size:48px;color:#fff;text-align:center;font-weight:600;max-width:800px;">' + text + '</div><div style="position:absolute;bottom:40px;color:rgba(255,255,255,0.6);font-size:14px;">Toca para cerrar</div>';
+  overlay.onclick = () => document.body.removeChild(overlay);
+  document.body.appendChild(overlay);
+}
+
+// Función para activar/desactivar cámara
+let cameraActive = false;
+let videoStream = null;
+
+async function toggleCamera() {
+  if (cameraActive && videoStream) {
+    // Detener cámara
+    videoStream.getTracks().forEach(track => track.stop());
+    videoStream = null;
+    cameraActive = false;
+    if (typeof announce === 'function') {
+      announce('Cámara desactivada');
+    }
+  } else {
+    // Activar cámara
+    try {
+      videoStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      cameraActive = true;
+      
+      // Mostrar video en overlay
+      const video = document.createElement('video');
+      video.id = 'cameraVideo';
+      video.style.cssText = 'position:fixed;top:20px;right:20px;width:320px;height:240px;background:#000;border-radius:12px;border:3px solid var(--pri-c);z-index:9998;cursor:pointer;box-shadow:0 8px 32px rgba(92,66,212,0.4);';
+      video.srcObject = videoStream;
+      video.autoplay = true;
+      video.playsInline = true;
+      
+      // Botón para cerrar
+      const closeBtn = document.createElement('div');
+      closeBtn.style.cssText = 'position:absolute;top:-10px;right:-10px;width:32px;height:32px;background:#DC2626;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:9999;color:#fff;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
+      closeBtn.innerHTML = '×';
+      closeBtn.onclick = () => {
+        videoStream.getTracks().forEach(track => track.stop());
+        videoStream = null;
+        cameraActive = false;
+        document.body.removeChild(video);
+        document.body.removeChild(closeBtn);
+        if (typeof announce === 'function') {
+          announce('Cámara desactivada');
+        }
+      };
+      
+      video.onclick = () => {
+        videoStream.getTracks().forEach(track => track.stop());
+        videoStream = null;
+        cameraActive = false;
+        document.body.removeChild(video);
+        document.body.removeChild(closeBtn);
+        if (typeof announce === 'function') {
+          announce('Cámara desactivada');
+        }
+      };
+      
+      document.body.appendChild(video);
+      document.body.appendChild(closeBtn);
+      
+      if (typeof announce === 'function') {
+        announce('Cámara activada. Muestra tus manos para comunicarte por señas.');
+      }
+    } catch (err) {
+      console.error('Error al acceder a la cámara:', err);
+      if (typeof announce === 'function') {
+        announce('No se pudo acceder a la cámara. Verifica los permisos.');
+      }
+    }
+  }
+}
+
 
 /* ============================================================
    10. INICIALIZACIÓN GENERAL
@@ -683,6 +777,8 @@ window.startProfileCountdown = startProfileCountdown;
 window.stopProfileCountdown = stopProfileCountdown;
 window.saveSession = saveSession;
 window.startDetect = startDetect;
+window.showDeafblindPhrase = showDeafblindPhrase;
+window.toggleCamera = toggleCamera;
 window.startCountdown = startCountdown;
 window.toggleBlindMic = toggleBlindMic;
 window.copyBlindText = copyBlindText;
