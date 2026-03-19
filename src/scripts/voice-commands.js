@@ -22,7 +22,8 @@ let assistantState = {
   errorCount: 0
 };
 
-const SCREEN_NAMES = {
+// Mapa de nombres de pantallas para anuncios (VOICE_)
+const VOICE_SCREEN_NAMES = {
   0: 'Pantalla de inicio',
   1: 'Selección de perfil',
   2: 'Detección con IA',
@@ -511,7 +512,7 @@ function announce(text, priority = 'normal') {
 }
 
 function announceScreenChange(screenNumber) {
-  const screenName = SCREEN_NAMES[screenNumber] || 'Pantalla';
+  const screenName = VOICE_SCREEN_NAMES[screenNumber] || 'Pantalla';
   currentScreenName = screenName;
   const actions = getAvailableActions(screenNumber);
   announce(`${screenName}. ${actions}`, 'high');
@@ -543,7 +544,7 @@ function getAvailableActions(screenNumber) {
 
 function announceCurrentScreen() {
   const screenNum = appState.currentScreen;
-  const screenName = SCREEN_NAMES[screenNum] || 'Pantalla desconocida';
+  const screenName = VOICE_SCREEN_NAMES[screenNum] || 'Pantalla desconocida';
   const actions = getAvailableActions(screenNum);
   announce(`${screenName}. ${actions}`, 'high');
 }
@@ -681,7 +682,7 @@ function announceNavigation(screenNumber) {
   
   if (voiceCommandActive) {
     setTimeout(() => {
-      const screenName = SCREEN_NAMES[screenNumber] || 'Pantalla';
+      const screenName = VOICE_SCREEN_NAMES[screenNumber] || 'Pantalla';
       const flow = CONVERSATIONAL_FLOWS[screenNumber];
       const greeting = flow ? flow.greeting : '';
       
