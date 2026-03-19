@@ -582,6 +582,16 @@ function speakBlindPhrase(text) {
   addToBlindHistory(text);
 }
 
+function clearBlindText() {
+  const el = document.getElementById('blindOutput');
+  if (el) {
+    el.textContent = '';
+    if (appState.blind) {
+      appState.blind.text = '';
+    }
+  }
+}
+
 function addToBlindHistory(text) {
   const history = document.getElementById('blindHistory');
   if (!history) return;
@@ -1047,6 +1057,7 @@ window.toggleBlindMic = toggleBlindMic;
 window.copyBlindText = copyBlindText;
 window.speakBlindText = speakBlindText;
 window.speakBlindPhrase = speakBlindPhrase;
+window.clearBlindText = clearBlindText;
 window.toggleDeafTranscription = toggleDeafTranscription;
 window.clearDeafSubtitle = clearDeafSubtitle;
 window.quickDeafPhrase = quickDeafPhrase;

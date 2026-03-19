@@ -271,8 +271,27 @@ input, textarea, .editable {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes pulse-assistant {
+  0%, 100% { box-shadow: 0 4px 16px rgba(92,66,212,0.4); transform: scale(1); }
+  50% { box-shadow: 0 4px 24px rgba(92,66,212,0.6); transform: scale(1.05); }
+}
+
+@keyframes assistant-listening {
+  0%, 100% { background: rgba(92,66,212,0.9); }
+  50% { background: rgba(34,197,94,0.9); }
+}
+
 .screen.on {
   animation: fade-in 0.3s ease-out;
+}
+
+/* Indicador del asistente */
+#assistantIndicator.listening {
+  animation: pulse-assistant 1.5s ease-in-out infinite, assistant-listening 2s ease-in-out infinite;
+}
+
+#assistantIndicator.active {
+  animation: pulse-assistant 2s ease-in-out infinite;
 }
 </style>
 </head>
@@ -372,8 +391,21 @@ input, textarea, .editable {
       <button class="btn-g" onclick="go(1)" style="max-width:280px;background:transparent;border:1.5px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.8);">
         Seleccionar perfil manualmente
       </button>
-      
+
+      <!-- Botón para omitir asistente de voz -->
+      <button id="skipAssistantBtn" onclick="skipAssistant()" style="display:none;width:100%;max-width:280px;background:transparent;border:1px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.6);padding:10px 16px;margin-top:12px;border-radius:var(--r);cursor:pointer;font-size:12px;">
+        <span style="display:flex;align-items:center;justify-content:center;gap:6px;">
+          <span class="mi sm" style="font-size:16px;">skip_next</span>
+          <span>Omitir asistente de voz - Modo lectura</span>
+        </span>
+      </button>
+
       <div style="margin-top:16px;font-size:11px;color:rgba(255,255,255,0.4);">La IA detectará tu perfil automáticamente</div>
+    </div>
+    
+    <!-- Indicador de asistente activo (esquina superior derecha) -->
+    <div id="assistantIndicator" onclick="toggleAssistantFromIndicator()" style="display:none;position:absolute;top:60px;right:16px;background:rgba(92,66,212,0.9);border:2px solid rgba(255,255,255,0.3);border-radius:50%;width:44px;height:44px;cursor:pointer;z-index:100;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(92,66,212,0.4);" title="Estado del asistente de voz">
+      <span class="mi fill" style="color:#fff;font-size:24px;">mic</span>
     </div>
   </div>
 
