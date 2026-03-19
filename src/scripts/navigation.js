@@ -90,12 +90,23 @@ function go(n) {
   
   appState.currentScreen = n;
 
+  // Guardar sesión
+  if (typeof saveSession === 'function') {
+    saveSession(n);
+  }
+
   // Anunciar cambio de pantalla si los comandos de voz están activos
   if (typeof announceNavigation === 'function') {
     announceNavigation(n);
   }
 
   // Inicializaciones específicas por pantalla
+  if (n === 1) {
+    // Iniciar temporizador en pantalla de selección de perfil
+    if (typeof startProfileCountdown === 'function') {
+      setTimeout(() => startProfileCountdown(), 500);
+    }
+  }
   if (n === 2) startDetect();
   if (n === 3) startCountdown();
   if (n === 6 && typeof initBlindWaveform === 'function') initBlindWaveform();

@@ -1,19 +1,141 @@
 ﻿/* ============================================================
    UNIVOZ — app.js
-   Versión PWA - Producción v5 + LSM v4
+   Versión PWA - Producción v6 + Integración univoz-master
    ============================================================ */
+
+/* ============================================================
+   1. GESTIÓN DE SESIÓN Y TEMPORIZADOR
+   ============================================================ */
+let profileCountdownInterval;
+let PROFILE_COUNTDOWN = 5;
+
+// Guardar sesión actual
+function saveSession(screenNumber) {
+  if (!screenNumber) screenNumber = appState ? appState.currentScreen : 0;
+  const profile = appState ? appState.activeProfile : null;
+  
+  localStorage.setItem('univoz_lastScreen', screenNumber);
+  localStorage.setItem('univoz_lastProfile', profile || 'unknown');
+  localStorage.setItem('univoz_lastVisit', new Date().toISOString());
+}
+
+// Reanudar sesión
+function resumeSession() {
+  const lastScreen = localStorage.getItem('univoz_lastScreen');
+  const lastProfile = localStorage.getItem('univoz_lastProfile');
+  
+  if (lastScreen && lastProfile) {
+    if (typeof appState !== 'undefined') {
+      appState.activeProfile = lastProfile;
+    }
+    const screen = parseInt(lastScreen);
+    go(screen);
+    
+    if (typeof announce === 'function') {
+      announce('Sesión reanudada. Perfil: ' + lastProfile);
+    }
+  }
+}
+
+// Verificar si hay sesión guardada
+function checkForSavedSession() {
+  const lastScreen = localStorage.getItem('univoz_lastScreen');
+  const resumeBtn = document.getElementById('resumeBtn');
+  const resumeLabel = document.getElementById('resumeLabel');
+  
+  if (lastScreen && resumeBtn && resumeLabel) {
+    const lastVisit = localStorage.getItem('univoz_lastVisit');
+    if (lastVisit) {
+      const date = new Date(lastVisit);
+      const now = new Date();
+      const hoursAgo = Math.floor((now - date) / (1000 * 60 * 60));
+      
+      const screenNames = {
+        0: 'Inicio', 1: 'Perfil', 2: 'IA', 3: 'Confirmación',
+        4: 'Config Ciego', 5: 'Inicio Ciego', 6: 'Dictado',
+        7: 'Config Sordo', 8: 'Inicio Sordo', 9: 'Subtítulos',
+        10: 'LSM', 11: 'Transcripción', 12: 'Config Mudo',
+        13: 'Inicio Mudo', 14: 'Texto a Voz'
+      };
+      
+      const screenName = screenNames[lastScreen] || 'Pantalla ' + lastScreen;
+      resumeLabel.textContent = `Hace ${hoursAgo}h · ${screenName}`;
+      resumeBtn.style.display = 'flex';
+    }
+  }
+}
+
+// Iniciar temporizador de perfil
+function startProfileCountdown() {
+  const ring = document.getElementById('profileCountdownRing');
+  const label = document.getElementById('profileCountdown');
+  
+  if (!ring || !label) return;
+  
+  clearInterval(profileCountdownInterval);
+  
+  let countdown = PROFILE_COUNTDOWN;
+  const circumference = 106.8;
+  
+  function updateUI() {
+    label.textContent = countdown;
+    const offset = circumference - (countdown / PROFILE_COUNTDOWN) * circumference;
+    ring.style.strokeDashoffset = offset;
+  }
+  
+  updateUI();
+  
+  profileCountdownInterval = setInterval(() => {
+    countdown--;
+    updateUI();
+    
+    if (countdown <= 0) {
+      clearInterval(profileCountdownInterval);
+      selectProfile('blind');
+    }
+  }, 1000);
+}
+
+// Detener temporizador
+function stopProfileCountdown() {
+  clearInterval(profileCountdownInterval);
+}
 
 /* ============================================================
    2. SELECCIÓN DE PERFIL
    ============================================================ */
 function selP(t) {
-  ['b','d','m'].forEach(p => {
+  ['b','d','m','db'].forEach(p => {
     const el = document.getElementById('psel-' + p);
-    if (el) el.classList.remove('sel-blind','sel-deaf','sel-mute');
+    if (el) el.classList.remove('sel-blind','sel-deaf','sel-mute','sel-deafblind');
   });
-  const map = { b: 'sel-blind', d: 'sel-deaf', m: 'sel-mute' };
+  const map = { b: 'sel-blind', d: 'sel-deaf', m: 'sel-mute', db: 'sel-deafblind' };
   const el = document.getElementById('psel-' + t);
   if (el) el.classList.add(map[t]);
+}
+
+// Nueva función selectProfile
+function selectProfile(profile) {
+  stopProfileCountdown();
+  
+  const profileMap = {
+    'blind': { screen: 4, class: 'sel-blind' },
+    'deaf': { screen: 7, class: 'sel-deaf' },
+    'mute': { screen: 12, class: 'sel-mute' },
+    'deafblind': { screen: 4, class: 'sel-deafblind' }
+  };
+  
+  const config = profileMap[profile];
+  if (config) {
+    selP(profile === 'deafblind' ? 'db' : profile[0]);
+    
+    if (typeof appState !== 'undefined') {
+      appState.activeProfile = profile;
+    }
+    
+    go(config.screen);
+    saveSession(config.screen);
+  }
 }
 
 
@@ -542,6 +664,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // Exportar funciones globales
 window.selP = selP;
+window.selectProfile = selectProfile;
+window.resumeSession = resumeSession;
+window.checkForSavedSession = checkForSavedSession;
+window.startProfileCountdown = startProfileCountdown;
+window.stopProfileCountdown = stopProfileCountdown;
+window.saveSession = saveSession;
 window.startDetect = startDetect;
 window.startCountdown = startCountdown;
 window.toggleBlindMic = toggleBlindMic;
