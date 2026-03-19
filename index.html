@@ -1,182 +1,438 @@
-<!DOCTYPE html>
-<!--
-╔══════════════════════════════════════════════════════════════╗
-║                    UNIVOZ — v5 + LSM v4                      ║
-║              Aplicación de accesibilidad integrada           ║
-║                                                              ║
-║  Archivos del proyecto:                                      ║
-║    index.html  ← este archivo (estructura)                   ║
-║    styles.css  ← todo el CSS                                 ║
-║    app.js      ← toda la lógica JS                           ║
-║                                                              ║
-║  ÍNDICE DE PANTALLAS (id="scN"):                             ║
-║    sc0   Splash / Bienvenida                                 ║
-║    sc1   Selección de perfil                                 ║
-║    sc2   Detección IA                                        ║
-║    sc3   Resultado detección                                 ║
-║    sc4   Configuración inicial — Ciego                       ║
-║    sc5   Home — Ciego                                        ║
-║    sc6   Dictado de voz — Ciego                              ║
-║    sc7   Configuración inicial — Sordo                       ║
-║    sc8   Home — Sordo                                        ║
-║    sc9   Subtítulos en vivo — Sordo                          ║
-║    sc10  Señas LSM 3D (integración v4) — Sordo               ║
-║    sc11  Transcripción audio/video — Sordo                   ║
-║    sc12  Configuración inicial — Mudo                        ║
-║    sc13  Home — Mudo                                         ║
-║    sc14  Texto a Voz — Mudo                                  ║
-║    sc15  Ajustes generales                                   ║
-╚══════════════════════════════════════════════════════════════╝
--->
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>UNIVOZ — v5 + LSM</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<meta name="theme-color" content="#5C42D4"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="UNIVOZ"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="format-detection" content="telephone=no"/>
+<meta name="msapplication-tap-highlight" content="no"/>
+<title>UNIVOZ Accesibilidad Universal</title>
 
-<!-- Fuentes -->
+
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icons/icon-192.png"/>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"/>
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png"/>
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 
-<!-- PWA: manifest e iconos -->
-<link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#5C42D4"/>
-<meta name="mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
-<meta name="apple-mobile-web-app-title" content="UNIVOZ"/>
-<link rel="apple-touch-icon" href="icons/icon-192.png"/>
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"/>
 
-<!-- Three.js para el módulo LSM 3D (pantalla sc10) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-<!-- Hoja de estilos -->
-<link rel="stylesheet" href="styles.css"/>
+
+<link rel="stylesheet" href="src/styles/app.css"/>
+
+<style>
+/* 
+   ESTILOS PWA - APP NATIVA
+*/
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+body {
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse at 70% 20%, rgba(92,66,212,.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 20% 80%, rgba(13,148,136,.08) 0%, transparent 45%);
+  font-family: var(--fn);
+  color: var(--t1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+/* Safe area para notches */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 20px);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+/* Contenedor principal de la app */
+.app-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--bg);
+  position: relative;
+}
+
+/* Pantallas */
+.screen {
+  display: none;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.screen.on {
+  display: flex;
+}
+
+.scroll-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+}
+
+.scroll-content::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* Header de estado */
+.status-bar {
+  height: calc(env(safe-area-inset-top, 0px) + 10px);
+  background: transparent;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--t3);
+}
+
+.status-bar .time {
+  flex: 1;
+}
+
+.status-bar .icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-bar .icons .mi {
+  font-size: 14px;
+  color: var(--t3);
+}
+
+/* Splash screen loader */
+.app-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(160deg, #1A1240 0%, #2D1B6B 50%, #1A2A5E 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+.app-loader.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.app-loader .logo-container {
+  width: 100px;
+  height: 100px;
+  border-radius: 28px;
+  background: rgba(255,255,255,0.1);
+  border: 1.5px solid rgba(255,255,255,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 32px rgba(92,66,212,0.4);
+  animation: float 3s ease-in-out infinite;
+}
+
+.app-loader .app-name {
+  font-family: var(--fns);
+  font-size: 42px;
+  color: #fff;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.app-loader .tagline {
+  font-size: 14px;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 40px;
+}
+
+.app-loader .loading-bar {
+  width: 200px;
+  height: 3px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.app-loader .loading-progress {
+  height: 100%;
+  background: linear-gradient(90deg, var(--pri-c), #8B5CF6);
+  border-radius: 2px;
+  animation: loading 1.5s ease-in-out infinite;
+}
+
+@keyframes loading {
+  0% { width: 0%; margin-left: 0%; }
+  50% { width: 100%; margin-left: 0%; }
+  100% { width: 0%; margin-left: 100%; }
+}
+
+/* Botones que permiten selección de texto */
+.btn-selectable,
+.phrase,
+.psel,
+.mode-card,
+.bni,
+.back-btn,
+.ao,
+.lsm-cell,
+.lsm-digraph,
+.lsm-phrase-btn {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Inputs permiten texto */
+input, textarea, .editable {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* Prevenir zoom en iOS */
+@supports (-webkit-touch-callout: none) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
+/* Animaciones */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.screen.on {
+  animation: fade-in 0.3s ease-out;
+}
+</style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════════
-     CABECERA DE PROTOTIPO (solo en desktop/demo)
-══════════════════════════════════════════════ -->
-<div class="pg-header">
-  <svg width="38" height="38" viewBox="0 0 60 60" fill="none">
-    <circle cx="30" cy="30" r="30" fill="#EEF0FF"/>
-    <g transform="translate(6,8)"><rect x="10" y="14" width="7" height="22" rx="3.5" fill="#F7D96B"/><rect x="18" y="9" width="6" height="20" rx="3" fill="#F7D96B"/><rect x="25" y="11" width="6" height="18" rx="3" fill="#F7D96B"/><rect x="32" y="14" width="6" height="15" rx="3" fill="#F7D96B"/><rect x="8" y="22" width="30" height="14" rx="6" fill="#F7D96B"/></g>
-    <g transform="translate(22,12)"><path d="M14 2C8 2 2 8 2 16C2 24 8 30 14 30C16 30 18 29 19 27L17 25C16 26 15 27 14 27C10 27 5 22 5 16C5 10 10 5 14 5C18 5 23 10 23 16L26 16C26 8 21 2 14 2Z" fill="#7BBFEA"/><path d="M14 10C11 10 8 13 8 16C8 19 10 21 12 22L14 19C13 18 11 17 11 16C11 14 12 13 14 13C16 13 17 14 17 16C17 18 15 19 15 21L18 21C19 19 20 17 20 16C20 13 17 10 14 10Z" fill="#4FA8D8"/></g>
-  </svg>
-  <span class="pg-title">UNIVOZ</span>
-  <span class="version-badge">v5 + LSM</span>
-</div>
 
-<!-- ══════════════════════════════════════════════
-     NAVEGACIÓN DE PROTOTIPO (tabs de pantalla)
-══════════════════════════════════════════════ -->
-<div style="max-width:760px;width:100%;margin-bottom:22px;">
-  <div class="snav-group" style="margin-bottom:8px;">
-    <span class="snav-label common">Onboarding</span>
-    <button class="sb on" onclick="go(0)" id="btn0">0 · Splash</button>
-    <button class="sb" onclick="go(1)" id="btn1">1 · Perfil</button>
-    <button class="sb" onclick="go(2)" id="btn2">2 · IA</button>
-    <button class="sb" onclick="go(3)" id="btn3">3 · Resultado</button>
+<div class="app-loader" id="appLoader">
+  <div class="logo-container">
+    <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+      <g transform="translate(6,8)">
+        <rect x="10" y="14" width="7" height="22" rx="3.5" fill="#F7D96B"/>
+        <rect x="18" y="9" width="6" height="20" rx="3" fill="#F7D96B"/>
+        <rect x="25" y="11" width="6" height="18" rx="3" fill="#F7D96B"/>
+        <rect x="32" y="14" width="6" height="15" rx="3" fill="#F7D96B"/>
+        <rect x="8" y="22" width="30" height="14" rx="6" fill="#F7D96B"/>
+      </g>
+      <g transform="translate(22,12)">
+        <path d="M14 2C8 2 2 8 2 16C2 24 8 30 14 30C16 30 18 29 19 27L17 25C16 26 15 27 14 27C10 27 5 22 5 16C5 10 10 5 14 5C18 5 23 10 23 16L26 16C26 8 21 2 14 2Z" fill="#7BBFEA"/>
+        <path d="M14 10C11 10 8 13 8 16C8 19 10 21 12 22L14 19C13 18 11 17 11 16C11 14 12 13 14 13C16 13 17 14 17 16C17 18 15 19 15 21L18 21C19 19 20 17 20 16C20 13 17 10 14 10Z" fill="#4FA8D8"/>
+      </g>
+    </svg>
   </div>
-  <div class="snav-group" style="margin-bottom:8px;">
-    <span class="snav-label blind">Modo Ciego</span>
-    <button class="sb s-blind" onclick="go(4)" id="btn4">4 · Config</button>
-    <button class="sb s-blind" onclick="go(5)" id="btn5">5 · Home</button>
-    <button class="sb s-blind" onclick="go(6)" id="btn6">6 · Dictado</button>
-  </div>
-  <div class="snav-group" style="margin-bottom:8px;">
-    <span class="snav-label deaf">Modo Sordo</span>
-    <button class="sb s-deaf" onclick="go(7)" id="btn7">7 · Config</button>
-    <button class="sb s-deaf" onclick="go(8)" id="btn8">8 · Home</button>
-    <button class="sb s-deaf" onclick="go(9)" id="btn9">9 · Subtítulos</button>
-    <button class="sb s-deaf" onclick="go(10)" id="btn10">10 · LSM 3D ★</button>
-    <button class="sb s-deaf" onclick="go(11)" id="btn11">11 · Transcribir</button>
-  </div>
-  <div class="snav-group">
-    <span class="snav-label mute">Modo Mudo</span>
-    <button class="sb s-mute" onclick="go(12)" id="btn12">12 · Config</button>
-    <button class="sb s-mute" onclick="go(13)" id="btn13">13 · Home</button>
-    <button class="sb s-mute" onclick="go(14)" id="btn14">14 · Texto→Voz</button>
-    <button class="sb" onclick="go(15)" id="btn15">⚙ Ajustes</button>
+  <div class="app-name">UNIVOZ</div>
+  <div class="tagline">Comunicación accesible para todos</div>
+  <div class="loading-bar">
+    <div class="loading-progress"></div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════
-     TELÉFONO — contenedor principal
-══════════════════════════════════════════════ -->
-<div class="phone">
-  <div class="notch"><div class="nc"></div><div class="ns"></div><div class="nc"></div></div>
-  <div class="sbar"><span>9:41</span><span>●●● ◼◼ ▮▮▮</span></div>
 
-  <!-- ════════════════════════════════════
-       sc0 · SPLASH / BIENVENIDA
-  ════════════════════════════════════ -->
-  <div class="screen on" id="sc0" style="background:var(--pri-ll);position:relative;overflow:hidden;">
-    <div class="blob" style="width:200px;height:200px;background:rgba(92,66,212,.12);top:-60px;right:-60px;"></div>
-    <div class="blob" style="width:160px;height:160px;background:rgba(13,148,136,.08);bottom:60px;left:-40px;"></div>
-    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px;text-align:center;position:relative;z-index:1;">
-      <div style="width:80px;height:80px;border-radius:24px;background:var(--surf);box-shadow:0 8px 32px rgba(92,66,212,.20);display:flex;align-items:center;justify-content:center;margin-bottom:20px;animation:float 3s ease-in-out infinite;">
-        <svg width="52" height="52" viewBox="0 0 60 60" fill="none"><g transform="translate(6,8)"><rect x="10" y="14" width="7" height="22" rx="3.5" fill="#F7D96B"/><rect x="18" y="9" width="6" height="20" rx="3" fill="#F7D96B"/><rect x="25" y="11" width="6" height="18" rx="3" fill="#F7D96B"/><rect x="32" y="14" width="6" height="15" rx="3" fill="#F7D96B"/><rect x="8" y="22" width="30" height="14" rx="6" fill="#F7D96B"/></g><g transform="translate(22,12)"><path d="M14 2C8 2 2 8 2 16C2 24 8 30 14 30C16 30 18 29 19 27L17 25C16 26 15 27 14 27C10 27 5 22 5 16C5 10 10 5 14 5C18 5 23 10 23 16L26 16C26 8 21 2 14 2Z" fill="#7BBFEA"/><path d="M14 10C11 10 8 13 8 16C8 19 10 21 12 22L14 19C13 18 11 17 11 16C11 14 12 13 14 13C16 13 17 14 17 16C17 18 15 19 15 21L18 21C19 19 20 17 20 16C20 13 17 10 14 10Z" fill="#4FA8D8"/></g></svg>
-      </div>
-      <h1 style="font-family:var(--fns);font-size:32px;color:var(--pri-c);margin-bottom:6px;font-style:italic;">UNIVOZ</h1>
-      <p style="font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:8px;">Comunicación accesible para todos.<br>Ciegos · Sordos · Mudos</p>
-      <div style="display:flex;gap:6px;margin-bottom:28px;flex-wrap:wrap;justify-content:center;">
-        <span style="background:var(--blind-l);color:var(--blind);border:1.5px solid var(--blind-br);border-radius:var(--pill);padding:3px 10px;font-size:10px;font-weight:700;">👁 Ciego</span>
-        <span style="background:var(--deaf-l);color:var(--deaf);border:1.5px solid var(--deaf-br);border-radius:var(--pill);padding:3px 10px;font-size:10px;font-weight:700;">🦻 Sordo</span>
-        <span style="background:var(--mute-l);color:var(--mute-c);border:1.5px solid var(--mute-br);border-radius:var(--pill);padding:3px 10px;font-size:10px;font-weight:700;">🤐 Mudo</span>
-      </div>
-      <button class="btn-p" onclick="go(2)" style="width:100%;max-width:240px;">
-        <span class="mi sm fill" style="color:#fff;">auto_awesome</span> Detectar mi perfil con IA
-      </button>
-      <button class="btn-g" onclick="go(1)" style="max-width:240px;">Seleccionar perfil manualmente</button>
+<div class="app-container">
+  
+  
+  <div class="status-bar safe-top">
+    <span class="time" id="statusTime">9:41</span>
+    <div class="icons">
+      <span class="mi fill">signal_cellular_alt</span>
+      <span class="mi fill">wifi</span>
+      <span class="mi fill">battery_full</span>
     </div>
   </div>
 
-  <!-- ════════════════════════════════════
-       sc1 · SELECCIÓN MANUAL DE PERFIL
-  ════════════════════════════════════ -->
+  
+  <div class="screen on" id="sc0" style="background:linear-gradient(160deg,#1A1240 0%,#2D1B6B 50%,#1A2A5E 100%);position:relative;overflow:hidden;">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px;text-align:center;position:relative;z-index:1;">
+      <div style="width:100px;height:100px;border-radius:28px;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;margin-bottom:24px;animation:float 3s ease-in-out infinite;box-shadow:0 8px 32px rgba(92,66,212,0.4);">
+        <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+          <g transform="translate(6,8)">
+            <rect x="10" y="14" width="7" height="22" rx="3.5" fill="#F7D96B"/>
+            <rect x="18" y="9" width="6" height="20" rx="3" fill="#F7D96B"/>
+            <rect x="25" y="11" width="6" height="18" rx="3" fill="#F7D96B"/>
+            <rect x="32" y="14" width="6" height="15" rx="3" fill="#F7D96B"/>
+            <rect x="8" y="22" width="30" height="14" rx="6" fill="#F7D96B"/>
+          </g>
+          <g transform="translate(22,12)">
+            <path d="M14 2C8 2 2 8 2 16C2 24 8 30 14 30C16 30 18 29 19 27L17 25C16 26 15 27 14 27C10 27 5 22 5 16C5 10 10 5 14 5C18 5 23 10 23 16L26 16C26 8 21 2 14 2Z" fill="#7BBFEA"/>
+            <path d="M14 10C11 10 8 13 8 16C8 19 10 21 12 22L14 19C13 18 11 17 11 16C11 14 12 13 14 13C16 13 17 14 17 16C17 18 15 19 15 21L18 21C19 19 20 17 20 16C20 13 17 10 14 10Z" fill="#4FA8D8"/>
+          </g>
+        </svg>
+      </div>
+      <h1 style="font-family:var(--fns);font-size:42px;color:#fff;margin-bottom:8px;font-style:italic;letter-spacing:-0.5px;">UNIVOZ</h1>
+      <p style="font-size:14px;color:rgba(255,255,255,0.6);line-height:1.6;margin-bottom:40px;">Comunicación accesible para todos</p>
+      
+      <div style="display:flex;gap:14px;margin-bottom:40px;">
+        <div style="text-align:center;opacity:0.85;">
+          <div style="width:50px;height:50px;border-radius:16px;background:var(--blind-l);border:1.5px solid rgba(29,78,216,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;box-shadow:0 4px 16px rgba(29,78,216,0.2);">
+            <span class="mi fill" style="color:var(--blind);font-size:24px;">visibility_off</span>
+          </div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.7);font-weight:600;">Ciego</div>
+        </div>
+        <div style="text-align:center;opacity:0.85;">
+          <div style="width:50px;height:50px;border-radius:16px;background:var(--deaf-l);border:1.5px solid rgba(13,148,136,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;box-shadow:0 4px 16px rgba(13,148,136,0.2);">
+            <span class="mi fill" style="color:var(--deaf);font-size:24px;">hearing_disabled</span>
+          </div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.7);font-weight:600;">Sordo</div>
+        </div>
+        <div style="text-align:center;opacity:0.85;">
+          <div style="width:50px;height:50px;border-radius:16px;background:var(--mute-l);border:1.5px solid rgba(217,119,6,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;box-shadow:0 4px 16px rgba(217,119,6,0.2);">
+            <span class="mi fill" style="color:var(--mute-c);font-size:24px;">voice_over_off</span>
+          </div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.7);font-weight:600;">Mudo</div>
+        </div>
+      </div>
+
+      <button class="btn-p" onclick="go(2)" style="width:100%;max-width:280px;background:rgba(255,255,255,0.12);border:1.5px solid rgba(255,255,255,0.22);box-shadow:none;color:#fff;backdrop-filter:blur(8px);">
+        <span class="mi sm fill" style="color:#fff;">auto_awesome</span> Detectar mi perfil con IA
+      </button>
+      <button class="btn-g" onclick="go(1)" style="max-width:280px;background:transparent;border:1.5px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.8);">
+        Seleccionar perfil manualmente
+      </button>
+      
+      <div style="margin-top:16px;font-size:11px;color:rgba(255,255,255,0.4);">La IA detectará tu perfil automáticamente</div>
+    </div>
+  </div>
+
+  
   <div class="screen" id="sc1" style="background:var(--surf);">
     <div class="hdr">
       <div class="back-btn" onclick="go(0)"><span class="mi sm" style="color:var(--t2);">arrow_back</span></div>
-      <svg class="logo-topbar" viewBox="0 0 60 60" fill="none"><circle cx="30" cy="30" r="30" fill="#EEF0FF"/><g transform="translate(6,8)"><rect x="10" y="14" width="7" height="22" rx="3.5" fill="#F7D96B"/><rect x="18" y="9" width="6" height="20" rx="3" fill="#F7D96B"/><rect x="25" y="11" width="6" height="18" rx="3" fill="#F7D96B"/><rect x="32" y="14" width="6" height="15" rx="3" fill="#F7D96B"/><rect x="8" y="22" width="30" height="14" rx="6" fill="#F7D96B"/></g><g transform="translate(22,12)"><path d="M14 2C8 2 2 8 2 16C2 24 8 30 14 30C16 30 18 29 19 27L17 25C16 26 15 27 14 27C10 27 5 22 5 16C5 10 10 5 14 5C18 5 23 10 23 16L26 16C26 8 21 2 14 2Z" fill="#7BBFEA"/><path d="M14 10C11 10 8 13 8 16C8 19 10 21 12 22L14 19C13 18 11 17 11 16C11 14 12 13 14 13C16 13 17 14 17 16C17 18 15 19 15 21L18 21C19 19 20 17 20 16C20 13 17 10 14 10Z" fill="#4FA8D8"/></g></svg>
+      <svg class="logo-topbar" viewBox="0 0 60 60" fill="none">
+        <circle cx="30" cy="30" r="30" fill="#EEF0FF"/>
+        <g transform="translate(6,8)">
+          <rect x="10" y="14" width="7" height="22" rx="3.5" fill="#F7D96B"/>
+          <rect x="18" y="9" width="6" height="20" rx="3" fill="#F7D96B"/>
+          <rect x="25" y="11" width="6" height="18" rx="3" fill="#F7D96B"/>
+          <rect x="32" y="14" width="6" height="15" rx="3" fill="#F7D96B"/>
+          <rect x="8" y="22" width="30" height="14" rx="6" fill="#F7D96B"/>
+        </g>
+        <g transform="translate(22,12)">
+          <path d="M14 2C8 2 2 8 2 16C2 24 8 30 14 30C16 30 18 29 19 27L17 25C16 26 15 27 14 27C10 27 5 22 5 16C5 10 10 5 14 5C18 5 23 10 23 16L26 16C26 8 21 2 14 2Z" fill="#7BBFEA"/>
+          <path d="M14 10C11 10 8 13 8 16C8 19 10 21 12 22L14 19C13 18 11 17 11 16C11 14 12 13 14 13C16 13 17 14 17 16C17 18 15 19 15 21L18 21C19 19 20 17 20 16C20 13 17 10 14 10Z" fill="#4FA8D8"/>
+        </g>
+      </svg>
       <div style="width:36px;"></div>
     </div>
     <div class="scroll-content" style="padding:6px 20px 20px;">
-      <h2 style="font-family:var(--fns);font-size:20px;color:var(--t1);margin-bottom:4px;">¿Cómo te puedo ayudar?</h2>
-      <p style="font-size:12px;color:var(--t2);line-height:1.6;margin-bottom:16px;">Elige tu perfil para activar las funciones de accesibilidad correctas.</p>
+      <h2 style="font-family:var(--fns);font-size:24px;color:var(--t1);margin-bottom:6px;line-height:1.2;">¿Cómo te podemos ayudar?</h2>
+      <p style="font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:20px;">Selecciona tu perfil de accesibilidad. Puedes cambiarlo después.</p>
+      
       <div id="psel-b" class="psel" onclick="selP('b');go(4)">
-        <div class="psel-ico b"><span class="mi fill" style="color:var(--blind);font-size:20px;">visibility_off</span></div>
-        <div><div class="psel-name">Soy ciega/o</div><div class="psel-desc">Uso la app con voz, lector de pantalla y dictado continuo.</div></div>
+        <div class="psel-ico b"><span class="mi fill" style="color:var(--blind);font-size:22px;">visibility_off</span></div>
+        <div>
+          <div class="psel-name">Soy ciega/o</div>
+          <div class="psel-desc">Uso voz para navegar. La app me lee la pantalla en voz alta.</div>
+        </div>
         <span class="mi psel-check" style="color:var(--blind);">check_circle</span>
       </div>
+      
       <div id="psel-d" class="psel" onclick="selP('d');go(7)">
-        <div class="psel-ico d"><span class="mi fill" style="color:var(--deaf);font-size:20px;">hearing_disabled</span></div>
-        <div><div class="psel-name">Soy sorda/o</div><div class="psel-desc">Necesito subtítulos, señas LSM y alertas visuales.</div></div>
+        <div class="psel-ico d"><span class="mi fill" style="color:var(--deaf);font-size:22px;">hearing_disabled</span></div>
+        <div>
+          <div class="psel-name">Soy sorda/o</div>
+          <div class="psel-desc">Necesito subtítulos en tiempo real y traducciones en lenguaje de señas.</div>
+        </div>
         <span class="mi psel-check" style="color:var(--deaf);">check_circle</span>
       </div>
-      <div id="psel-m" class="psel" onclick="selP('m');go(12)" style="border-radius:var(--r);padding:11px 14px;margin-bottom:0;border-color:rgba(217,119,6,.25);">
-        <div class="psel-ico m" style="width:38px;height:38px;"><span class="mi fill" style="color:var(--mute-c);font-size:18px;">voice_over_off</span></div>
-        <div style="flex:1;"><div style="font-size:13px;font-weight:600;color:var(--mute-c);">Soy muda/o</div><div style="font-size:11px;color:var(--t3);">La app habla por mí con texto</div></div>
+      
+      <div id="psel-m" class="psel" onclick="selP('m');go(12)">
+        <div class="psel-ico m"><span class="mi fill" style="color:var(--mute-c);font-size:22px;">voice_over_off</span></div>
+        <div>
+          <div class="psel-name">Soy muda/o</div>
+          <div class="psel-desc">Escribo y la app habla por mí con voz sintetizada natural.</div>
+        </div>
+        <span class="mi psel-check" style="color:var(--mute-c);">check_circle</span>
       </div>
-      <div class="cnt-bar" style="margin-top:12px;">
-        <div class="cnt-dot"></div>
-        <div style="font-size:11px;color:var(--mute-c);flex:1;font-weight:500;">Sin respuesta → Modo Ciego activado</div>
-        <div style="font-size:14px;color:var(--mute-c);font-weight:700;" id="cnt-num2">8s</div>
-      </div>
+      
+      <button class="btn-g" onclick="go(2)" style="margin-top:12px;">
+        <span class="mi sm" style="color:var(--pri-c);">psychology</span> Dejar que la IA detecte mi perfil
+      </button>
     </div>
   </div>
 
-  <!-- ════════════════════════════════════
-       sc2 · DETECCIÓN IA
-  ════════════════════════════════════ -->
+  
   <div class="screen" id="sc2" style="background:var(--bg);">
     <div class="hdr">
-      <div class="back-btn" onclick="go(0)"><span class="mi sm" style="color:var(--t2);">arrow_back</span></div>
-      <div style="font-size:12px;font-weight:700;color:var(--pri-c);">Detección IA</div>
+      <div class="back-btn" onclick="go(1)"><span class="mi sm" style="color:var(--t2);">arrow_back</span></div>
+      <svg class="logo-topbar" viewBox="0 0 60 60" fill="none">
+        <circle cx="30" cy="30" r="30" fill="#EEF0FF"/>
+        <g transform="translate(6,8)">
+          <rect x="10" y="14" width="7" height="22" rx="3.5" fill="#F7D96B"/>
+          <rect x="18" y="9" width="6" height="20" rx="3" fill="#F7D96B"/>
+          <rect x="25" y="11" width="6" height="18" rx="3" fill="#F7D96B"/>
+          <rect x="32" y="14" width="6" height="15" rx="3" fill="#F7D96B"/>
+          <rect x="8" y="22" width="30" height="14" rx="6" fill="#F7D96B"/>
+        </g>
+        <g transform="translate(22,12)">
+          <path d="M14 2C8 2 2 8 2 16C2 24 8 30 14 30C16 30 18 29 19 27L17 25C16 26 15 27 14 27C10 27 5 22 5 16C5 10 10 5 14 5C18 5 23 10 23 16L26 16C26 8 21 2 14 2Z" fill="#7BBFEA"/>
+          <path d="M14 10C11 10 8 13 8 16C8 19 10 21 12 22L14 19C13 18 11 17 11 16C11 14 12 13 14 13C16 13 17 14 17 16C17 18 15 19 15 21L18 21C19 19 20 17 20 16C20 13 17 10 14 10Z" fill="#4FA8D8"/>
+        </g>
+      </svg>
       <div style="width:36px;"></div>
     </div>
+    
     <div class="orb-sect">
       <div class="orb-glow"></div>
       <div style="position:relative;width:100px;height:100px;display:flex;align-items:center;justify-content:center;">
@@ -185,179 +441,355 @@
         <div class="ring ring-3"></div>
         <div class="orb"><div class="orb-in"><span class="mi fill" style="color:var(--pri-c);font-size:32px;">psychology</span></div></div>
       </div>
-      <div style="font-size:13px;font-weight:600;color:var(--t1);margin-top:12px;" id="ls-status">Iniciando análisis...</div>
-      <div style="font-size:11px;color:var(--t3);margin-top:4px;display:flex;align-items:center;gap:5px;"><span class="mi sm" style="color:var(--pri-c);">timer</span> <span id="ls-sec">0s</span> de análisis</div>
-    </div>
-    <div class="sig-card">
-      <div class="sig-row">
-        <div class="sig-chip" id="sig-mic"><div class="sig-check-badge">✓</div><span class="sig-ico">🎙️</span><div class="sig-nm">MICRÓFONO</div><div class="sig-vl" id="sv-mic">—</div></div>
-        <div class="sig-chip" id="sig-cam"><div class="sig-check-badge">✓</div><span class="sig-ico">📷</span><div class="sig-nm">CÁMARA</div><div class="sig-vl" id="sv-cam">—</div></div>
-        <div class="sig-chip" id="sig-tap"><div class="sig-check-badge">✓</div><span class="sig-ico">👆</span><div class="sig-nm">INTERACCIÓN</div><div class="sig-vl" id="sv-tap">—</div></div>
+      <div style="font-size:14px;font-weight:600;color:var(--t1);margin-top:16px;text-align:center;" id="ls-status">Analizando tu interacción...</div>
+      <div style="font-size:12px;color:var(--t3);margin-top:6px;display:flex;align-items:center;gap:6px;justify-content:center;">
+        <span class="mi sm" style="color:var(--pri-c);">timer</span>
+        <span id="ls-sec">0s</span> de análisis
       </div>
-      <div class="ai-chip" id="ai-res" style="opacity:0;transition:opacity .4s;">
-        <div class="ai-ava"><span class="mi fill" style="color:#fff;">psychology</span></div>
-        <div style="flex:1;">
-          <div style="font-size:12px;font-weight:700;color:var(--t1);">Perfil detectado: Ciego (87%)</div>
-          <div class="cbar-t" style="margin-top:6px;"><div class="cbar-f" style="width:87%;"></div></div>
+    </div>
+
+    <div class="sig-card">
+      <div style="font-size:10px;font-weight:700;color:var(--t3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:12px;">Señales detectadas</div>
+      <div class="sig-row">
+        <div class="sig-chip" id="sig-mic">
+          <div class="sig-check-badge">✓</div>
+          <span class="sig-ico"><span class="mi fill" style="color:var(--pri-c);">mic</span></span>
+          <div class="sig-nm">Micrófono</div>
+          <div class="sig-vl" id="sv-mic">Escuchando</div>
+        </div>
+        <div class="sig-chip" id="sig-cam">
+          <div class="sig-check-badge">✓</div>
+          <span class="sig-ico"><span class="mi fill" style="color:var(--pri-c);">videocam</span></span>
+          <div class="sig-nm">Cámara</div>
+          <div class="sig-vl" id="sv-cam">Observando</div>
+        </div>
+        <div class="sig-chip" id="sig-tap">
+          <div class="sig-check-badge">✓</div>
+          <span class="sig-ico"><span class="mi fill" style="color:var(--pri-c);">touch_app</span></span>
+          <div class="sig-nm">Interacción</div>
+          <div class="sig-vl" id="sv-tap">Detectando</div>
         </div>
       </div>
-    </div>
-    <div class="progress-dots">
-      <div class="pdot on" id="pd0"></div><div class="pdot" id="pd1"></div><div class="pdot" id="pd2"></div><div class="pdot" id="pd3"></div>
-    </div>
-  </div>
-
-  <!-- ════════════════════════════════════
-       sc3 · RESULTADO DE DETECCIÓN
-  ════════════════════════════════════ -->
-  <div class="screen" id="sc3" style="background:var(--bg);">
-    <div style="padding:16px;flex:1;display:flex;flex-direction:column;gap:10px;">
-      <div class="det-badge b"><span class="mi sm fill" style="color:var(--blind);">visibility_off</span> Ciego · 87% confianza</div>
-      <div class="ai-bub">La app detectó que usas principalmente el micrófono. Activaré lector de pantalla, dictado continuo y respuesta háptica.</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-        <div class="mode-opt m-blind"><span class="mo-ic">🔊</span><div class="mo-tx">Lector activado</div></div>
-        <div class="mode-opt m-blind"><span class="mo-ic">🎙️</span><div class="mo-tx">Dictado ON</div></div>
+      
+      <div class="ai-chip" id="ai-res" style="opacity:0;transition:opacity 0.4s;">
+        <div class="ai-ava"><span class="mi fill sm" style="color:#fff;font-size:16px;">psychology</span></div>
+        <div style="flex:1;">
+          <div style="font-size:10px;color:var(--pri-c);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:3px;">Perfil sugerido</div>
+          <div style="font-size:14px;font-weight:600;color:var(--t1);margin-bottom:2px;">Persona ciega</div>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:6px;">Confianza 87% · Interacción por voz</div>
+          <div class="cbar-t"><div class="cbar-f" style="--w:87%;width:0;"></div></div>
+        </div>
+        <div style="background:var(--pri-c);color:#fff;border-radius:var(--pill);padding:5px 10px;font-size:11px;font-weight:700;flex-shrink:0;box-shadow:0 2px 8px var(--pri-sh);">87%</div>
       </div>
-      <button class="btn-p btn-blind" onclick="go(4)"><span class="mi sm fill" style="color:#fff;">check_circle</span> Confirmar perfil</button>
-      <button class="btn-g" onclick="go(1)">Cambiar perfil</button>
     </div>
+    
+    <div style="margin:0 20px 16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-size:11px;font-weight:500;color:var(--t3);">Tiempo de análisis</span>
+        <span style="font-size:12px;font-weight:700;color:var(--pri-c);" id="ls-sec2">0s</span>
+      </div>
+      <div class="timer-t"><div class="timer-f" id="ls-fill"></div></div>
+    </div>
+    <button style="margin:0 20px 20px;width:calc(100% - 40px);padding:13px;background:var(--surf);color:var(--t2);font-size:13px;font-weight:500;border:1.5px solid var(--b1);border-radius:var(--pill);cursor:pointer;font-family:var(--fn);display:flex;align-items:center;justify-content:center;gap:7px;" onclick="go(1)">
+      <span class="mi sm" style="color:var(--t3);">tune</span> Elegir perfil manualmente
+    </button>
   </div>
 
-  <!-- ════════════════════════════════════
-       sc4 · CONFIGURACIÓN INICIAL — CIEGO
-  ════════════════════════════════════ -->
-  <div class="screen" id="sc4" style="background:var(--surf);position:relative;overflow:hidden;">
-    <div style="position:absolute;top:0;left:0;width:100%;height:120px;background:linear-gradient(180deg,rgba(29,78,216,.06),transparent);pointer-events:none;z-index:0;"></div>
-    <div class="hdr" style="position:relative;z-index:1;">
-      <div class="back-btn" onclick="go(1)"><span class="mi sm" style="color:var(--t2);">arrow_back</span></div>
-      <svg class="logo-topbar" viewBox="0 0 60 60" fill="none"><circle cx="30" cy="30" r="30" fill="#EEF0FF"/><g transform="translate(6,8)"><rect x="10" y="14" width="7" height="22" rx="3.5" fill="#F7D96B"/><rect x="18" y="9" width="6" height="20" rx="3" fill="#F7D96B"/><rect x="25" y="11" width="6" height="18" rx="3" fill="#F7D96B"/><rect x="32" y="14" width="6" height="15" rx="3" fill="#F7D96B"/><rect x="8" y="22" width="30" height="14" rx="6" fill="#F7D96B"/></g><g transform="translate(22,12)"><path d="M14 2C8 2 2 8 2 16C2 24 8 30 14 30C16 30 18 29 19 27L17 25C16 26 15 27 14 27C10 27 5 22 5 16C5 10 10 5 14 5C18 5 23 10 23 16L26 16C26 8 21 2 14 2Z" fill="#7BBFEA"/><path d="M14 10C11 10 8 13 8 16C8 19 10 21 12 22L14 19C13 18 11 17 11 16C11 14 12 13 14 13C16 13 17 14 17 16C17 18 15 19 15 21L18 21C19 19 20 17 20 16C20 13 17 10 14 10Z" fill="#4FA8D8"/></g></svg>
+  
+  <div class="screen" id="sc3" style="background:var(--bg);">
+    <div class="hdr">
+      <div class="back-btn" onclick="go(2)"><span class="mi sm" style="color:var(--t2);">arrow_back</span></div>
+      <svg class="logo-topbar" viewBox="0 0 60 60" fill="none">
+        <circle cx="30" cy="30" r="30" fill="#EEF0FF"/>
+        <g transform="translate(6,8)">
+          <rect x="10" y="14" width="7" height="22" rx="3.5" fill="#F7D96B"/>
+          <rect x="18" y="9" width="6" height="20" rx="3" fill="#F7D96B"/>
+          <rect x="25" y="11" width="6" height="18" rx="3" fill="#F7D96B"/>
+          <rect x="32" y="14" width="6" height="15" rx="3" fill="#F7D96B"/>
+          <rect x="8" y="22" width="30" height="14" rx="6" fill="#F7D96B"/>
+        </g>
+        <g transform="translate(22,12)">
+          <path d="M14 2C8 2 2 8 2 16C2 24 8 30 14 30C16 30 18 29 19 27L17 25C16 26 15 27 14 27C10 27 5 22 5 16C5 10 10 5 14 5C18 5 23 10 23 16L26 16C26 8 21 2 14 2Z" fill="#7BBFEA"/>
+          <path d="M14 10C11 10 8 13 8 16C8 19 10 21 12 22L14 19C13 18 11 17 11 16C11 14 12 13 14 13C16 13 17 14 17 16C17 18 15 19 15 21L18 21C19 19 20 17 20 16C20 13 17 10 14 10Z" fill="#4FA8D8"/>
+        </g>
+      </svg>
       <div style="width:36px;"></div>
     </div>
-    <div class="scroll-content" style="padding:6px 20px 20px;position:relative;z-index:1;">
+    
+    <div class="scroll-content" style="padding:6px 20px 20px;">
+      <div style="display:inline-flex;align-items:center;gap:6px;background:var(--pri-ll);border:1.5px solid var(--pri-br);border-radius:var(--pill);padding:5px 12px;font-size:10px;font-weight:700;color:var(--pri-c);margin-bottom:14px;">
+        <span class="mi sm fill" style="color:var(--pri-c);font-size:14px;">psychology</span> IA detectó un perfil
+      </div>
+      
+      <h2 style="font-family:var(--fns);font-size:22px;color:var(--t1);margin-bottom:8px;line-height:1.2;">¿Cuál te describe mejor?</h2>
+      
+      <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:18px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--pri-c),#8B5CF6);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 10px var(--pri-sh);">
+          <span class="mi fill sm" style="color:#fff;font-size:16px;">psychology</span>
+        </div>
+        <div style="flex:1;">
+          <div class="ai-bub">Detecté interacción exclusiva por voz y sin toques en pantalla. ¿Eres una persona ciega o con baja visión?<br><br>Si no respondes, activaré <strong style="color:var(--blind);">Modo Ciego</strong> en <strong style="color:var(--mute-c);" id="cnt-num">8s</strong>.</div>
+          <div style="font-size:10px;color:var(--pri-c);margin-top:5px;font-weight:500;">UNIVOZ IA · confianza 87%</div>
+        </div>
+      </div>
+      
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+        <div class="psel" style="border-radius:var(--r);padding:12px 16px;margin-bottom:0;border-color:rgba(29,78,216,0.25);" onclick="go(4)">
+          <div class="psel-ico b" style="width:40px;height:40px;"><span class="mi fill" style="color:var(--blind);font-size:20px;">visibility_off</span></div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;color:var(--blind);">Soy ciega/o</div>
+            <div style="font-size:11px;color:var(--t3);">Navego por voz, sin ver pantalla</div>
+          </div>
+          <div class="det-badge b" style="padding:4px 9px;font-size:10px;border-width:1.5px;">87%</div>
+        </div>
+        
+        <div class="psel" style="border-radius:var(--r);padding:12px 16px;margin-bottom:0;border-color:rgba(13,148,136,0.25);" onclick="go(7)">
+          <div class="psel-ico d" style="width:40px;height:40px;"><span class="mi fill" style="color:var(--deaf);font-size:20px;">hearing_disabled</span></div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;color:var(--deaf);">Soy sorda/o</div>
+            <div style="font-size:11px;color:var(--t3);">Necesito subtítulos o lenguaje de señas</div>
+          </div>
+        </div>
+        
+        <div class="psel" style="border-radius:var(--r);padding:12px 16px;margin-bottom:0;border-color:rgba(217,119,6,0.25);" onclick="go(12)">
+          <div class="psel-ico m" style="width:40px;height:40px;"><span class="mi fill" style="color:var(--mute-c);font-size:20px;">voice_over_off</span></div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;color:var(--mute-c);">Soy muda/o</div>
+            <div style="font-size:11px;color:var(--t3);">La app habla por mí con texto</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="cnt-bar">
+        <div class="cnt-dot"></div>
+        <div style="font-size:11px;color:var(--mute-c);flex:1;font-weight:500;">Sin respuesta → Modo Ciego activado</div>
+        <div style="font-size:14px;color:var(--mute-c);font-weight:700;" id="cnt-num2">8s</div>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="screen" id="sc4" style="background:var(--surf);">
+    <div class="hdr">
+      <div class="back-btn" onclick="go(1)"><span class="mi sm" style="color:var(--t2);">arrow_back</span></div>
+      <svg class="logo-topbar" viewBox="0 0 60 60" fill="none">
+        <circle cx="30" cy="30" r="30" fill="#EEF0FF"/>
+        <g transform="translate(6,8)">
+          <rect x="10" y="14" width="7" height="22" rx="3.5" fill="#F7D96B"/>
+          <rect x="18" y="9" width="6" height="20" rx="3" fill="#F7D96B"/>
+          <rect x="25" y="11" width="6" height="18" rx="3" fill="#F7D96B"/>
+          <rect x="32" y="14" width="6" height="15" rx="3" fill="#F7D96B"/>
+          <rect x="8" y="22" width="30" height="14" rx="6" fill="#F7D96B"/>
+        </g>
+        <g transform="translate(22,12)">
+          <path d="M14 2C8 2 2 8 2 16C2 24 8 30 14 30C16 30 18 29 19 27L17 25C16 26 15 27 14 27C10 27 5 22 5 16C5 10 10 5 14 5C18 5 23 10 23 16L26 16C26 8 21 2 14 2Z" fill="#7BBFEA"/>
+          <path d="M14 10C11 10 8 13 8 16C8 19 10 21 12 22L14 19C13 18 11 17 11 16C11 14 12 13 14 13C16 13 17 14 17 16C17 18 15 19 15 21L18 21C19 19 20 17 20 16C20 13 17 10 14 10Z" fill="#4FA8D8"/>
+        </g>
+      </svg>
+      <div style="width:36px;"></div>
+    </div>
+    <div class="scroll-content" style="padding:6px 20px 20px;">
       <div class="pbadge pb-blind"><span class="mi sm" style="color:var(--blind);">visibility_off</span> Perfil: Persona ciega</div>
       <h2 style="font-family:var(--fns);font-size:20px;color:var(--t1);margin-bottom:5px;">Todo listo para ti</h2>
       <p style="font-size:12px;color:var(--t2);line-height:1.6;margin-bottom:14px;">Activé las funciones de accesibilidad visual para tu comodidad.</p>
+      
       <div class="wcard" style="margin-bottom:12px;">
-        <div class="pref-row"><div class="pref-ico" style="background:var(--blind-l);">🔊</div><div style="flex:1;"><div class="pref-nm">Lector de pantalla</div><div class="pref-ds">Narra cada acción con voz</div></div><div class="tog"></div></div>
-        <div class="pref-row"><div class="pref-ico" style="background:var(--blind-l);">🎙️</div><div style="flex:1;"><div class="pref-nm">Dictado continuo</div><div class="pref-ds">Sin necesidad de tocar pantalla</div></div><div class="tog"></div></div>
-        <div class="pref-row"><div class="pref-ico" style="background:var(--blind-l);">📳</div><div style="flex:1;"><div class="pref-nm">Vibración de confirmación</div><div class="pref-ds">Respuesta háptica en cada acción</div></div><div class="tog"></div></div>
-        <div class="pref-row"><div class="pref-ico" style="background:var(--surf2);">🌙</div><div style="flex:1;"><div class="pref-nm">Alto contraste</div><div class="pref-ds">Mayor legibilidad visual</div></div><div class="tog off"></div></div>
+        <div class="pref-row">
+          <div class="pref-ico" style="background:var(--blind-l);"><span class="mi fill" style="color:var(--blind);">volume_up</span></div>
+          <div style="flex:1;">
+            <div class="pref-nm">Lector de pantalla</div>
+            <div class="pref-ds">Narra cada acción con voz</div>
+          </div>
+          <div class="tog"></div>
+        </div>
+        <div class="pref-row">
+          <div class="pref-ico" style="background:var(--blind-l);"><span class="mi fill" style="color:var(--blind);">mic</span></div>
+          <div style="flex:1;">
+            <div class="pref-nm">Dictado continuo</div>
+            <div class="pref-ds">Sin necesidad de tocar pantalla</div>
+          </div>
+          <div class="tog"></div>
+        </div>
+        <div class="pref-row">
+          <div class="pref-ico" style="background:var(--blind-l);"><span class="mi fill" style="color:var(--blind);">vibration</span></div>
+          <div style="flex:1;">
+            <div class="pref-nm">Vibración de confirmación</div>
+            <div class="pref-ds">Respuesta háptica en cada acción</div>
+          </div>
+          <div class="tog"></div>
+        </div>
+        <div class="pref-row">
+          <div class="pref-ico" style="background:var(--surf2);"><span class="mi" style="color:var(--t3);">contrast</span></div>
+          <div style="flex:1;">
+            <div class="pref-nm">Alto contraste</div>
+            <div class="pref-ds">Mayor legibilidad visual</div>
+          </div>
+          <div class="tog off"></div>
+        </div>
       </div>
-      <button class="btn-p btn-blind" onclick="go(5)"><span class="mi sm fill" style="color:#fff;">check_circle</span> Entrar a UNIVOZ</button>
+
+      <button class="btn-p btn-blind" onclick="goHome()">
+        <span class="mi sm fill" style="color:#fff;">check_circle</span> Entrar a UNIVOZ
+      </button>
     </div>
   </div>
 
-  <!-- ════════════════════════════════════
-       sc5 · HOME — CIEGO
-  ════════════════════════════════════ -->
-  <div class="screen" id="sc5" style="background:var(--bg);position:relative;overflow:hidden;">
-    <div class="blob" style="width:160px;height:160px;background:rgba(29,78,216,.08);top:-40px;right:-40px;"></div>
+  
+  <div class="screen" id="sc5" style="background:var(--bg);">
     <div style="background:var(--surf);border-bottom:1.5px solid var(--blind-br);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
       <div style="display:flex;align-items:center;gap:8px;">
-        <div style="width:36px;height:36px;border-radius:12px;background:var(--blind-l);display:flex;align-items:center;justify-content:center;"><span class="mi fill" style="color:var(--blind);">visibility_off</span></div>
-        <div><div style="font-size:10px;color:var(--t3);font-weight:500;">Modo Ciego activo</div><div style="font-size:14px;font-weight:700;color:var(--t1);">Hola, bienvenida/o</div></div>
+        <div style="width:36px;height:36px;border-radius:12px;background:var(--blind-l);display:flex;align-items:center;justify-content:center;">
+          <span class="mi fill" style="color:var(--blind);">visibility_off</span>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--t3);font-weight:500;">Modo Ciego activo</div>
+          <div style="font-size:14px;font-weight:700;color:var(--t1);">Hola, bienvenida/o</div>
+        </div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
-        <div style="background:var(--blind-l);border:1.5px solid var(--blind-br);border-radius:var(--pill);padding:3px 9px;font-size:10px;font-weight:700;color:var(--blind);display:flex;align-items:center;gap:4px;"><span style="width:6px;height:6px;border-radius:50%;background:#10B981;display:inline-block;animation:blink 2s ease-in-out infinite;"></span>Lector ON</div>
-        <div class="back-btn" onclick="go(15)"><span class="mi sm" style="color:var(--blind);">settings</span></div>
+        <div style="background:var(--blind-l);border:1.5px solid var(--blind-br);border-radius:var(--pill);padding:3px 9px;font-size:10px;font-weight:700;color:var(--blind);display:flex;align-items:center;gap:4px;">
+          <span style="width:6px;height:6px;border-radius:50%;background:#10B981;display:inline-block;animation:blink 2s ease-in-out infinite;"></span>Lector ON
+        </div>
+        <div class="back-btn" onclick="openSettings()"><span class="mi sm" style="color:var(--blind);">settings</span></div>
       </div>
     </div>
+    
     <div class="scroll-content" style="padding:12px 16px;">
-      <div style="background:var(--blind-l);border:1.5px solid var(--blind-br);border-radius:var(--r);padding:14px;margin-bottom:12px;">
-        <div style="font-size:11px;color:var(--blind);font-weight:700;margin-bottom:6px;">🔊 Lector de pantalla activo</div>
-        <div style="font-size:12px;color:var(--t2);line-height:1.6;">"Pantalla de inicio. Tienes 2 acciones disponibles: Dictado de voz y Acciones rápidas."</div>
-      </div>
-      <div class="mode-card blind-card" onclick="go(6)" style="padding:16px 14px;">
-        <div class="mode-ico" style="background:var(--blind-l);"><span class="mi fill" style="color:var(--blind);font-size:22px;">mic</span></div>
-        <div><div class="mode-lbl">Dictado de voz</div><div class="mode-sub">Habla · Transcribe · Escucha</div></div>
+      <div class="mode-card blind-card" onclick="go(6)" style="padding:16px 14px;margin-bottom:12px;">
+        <div class="mode-ico" style="background:var(--blind-l);">
+          <span class="mi fill" style="color:var(--blind);font-size:22px;">mic</span>
+        </div>
+        <div>
+          <div class="mode-lbl">Dictado de voz</div>
+          <div class="mode-sub">Habla · Transcribe · Escucha</div>
+        </div>
         <div class="mode-act" style="color:var(--blind);">USAR →</div>
       </div>
+      
+      <div class="wcard">
+        <div style="font-size:11px;font-weight:700;color:var(--t1);margin-bottom:8px;">Acciones rápidas</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <button onclick="speakBlindPhrase('Necesito ayuda')" style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--blind-l);border:1px solid var(--blind-br);border-radius:var(--r-sm);font-size:12px;color:var(--blind);font-family:var(--fn);cursor:pointer;font-weight:500;">
+            <span class="mi sm" style="color:var(--blind);">help</span>Necesito ayuda
+          </button>
+          <button onclick="speakBlindPhrase('Necesito ayuda de emergencia')" style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:#FEF2F2;border:1.5px solid rgba(239,68,68,0.3);border-radius:var(--r-sm);font-size:12px;color:#DC2626;font-family:var(--fn);cursor:pointer;font-weight:600;">
+            <span class="mi sm" style="color:#DC2626;">emergency</span>EMERGENCIA
+          </button>
+        </div>
+      </div>
     </div>
+    
     <div class="bnav">
       <div class="bni on-blind"><span class="mi fill" style="color:var(--blind);">home</span><span class="lbl" style="color:var(--blind);">Inicio</span></div>
       <div class="bni" onclick="go(6)"><span class="mi">mic</span><span class="lbl">Dictar</span></div>
       <div class="bni"><span class="mi">history</span><span class="lbl">Historial</span></div>
-      <div class="bni" onclick="go(15)"><span class="mi">settings</span><span class="lbl">Ajustes</span></div>
+      <div class="bni" onclick="openSettings()"><span class="mi">settings</span><span class="lbl">Ajustes</span></div>
     </div>
   </div>
 
-  <!-- ════════════════════════════════════
-       sc6 · DICTADO DE VOZ — CIEGO
-  ════════════════════════════════════ -->
+
   <div class="screen" id="sc6" style="background:var(--bg);">
-    <div style="background:var(--surf);border-bottom:1px solid var(--blind-br);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-      <div class="back-btn" onclick="go(5)"><span class="mi sm" style="color:var(--t2);">arrow_back</span></div>
-      <div style="text-align:center;"><div style="font-size:13px;font-weight:700;color:var(--blind);">Modo Ciego</div><div style="font-size:10px;color:var(--t3);">Dictado de voz</div></div>
+    <div style="background:var(--surf);border-bottom:1.5px solid var(--blind-br);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div class="back-btn" onclick="goHome()"><span class="mi sm" style="color:var(--t2);">arrow_back</span></div>
+      <div style="text-align:center;">
+        <div style="font-size:13px;font-weight:700;color:var(--blind);">Modo Ciego</div>
+        <div style="font-size:10px;color:var(--t3);">Dictado de voz</div>
+      </div>
       <div class="back-btn"><span class="mi sm" style="color:var(--blind);">settings</span></div>
     </div>
+    
     <div class="mode-header blind-h">
-      <div class="mode-ava" style="background:var(--blind);"><span class="mi fill" style="color:#fff;font-size:22px;">mic</span></div>
-      <div><div style="font-size:14px;font-weight:700;color:var(--t1);">Voz a Texto</div><div style="display:flex;align-items:center;gap:5px;"><div class="live-dot"></div><span style="font-size:11px;color:var(--blind);font-weight:600;">Dictado activo · Escuchándote</span></div></div>
+      <div class="mode-ava" style="background:var(--blind);">
+        <span class="mi fill" style="color:#fff;font-size:22px;">mic</span>
+      </div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--t1);">Voz a Texto</div>
+        <div style="display:flex;align-items:center;gap:5px;">
+          <div class="live-dot"></div>
+          <span style="font-size:11px;color:var(--blind);font-weight:600;">Dictado activo · Escuchándote</span>
+        </div>
+      </div>
     </div>
+    
     <div class="scroll-content" style="padding:12px 16px;gap:10px;display:flex;flex-direction:column;">
       <div style="background:var(--surf);border-radius:var(--r);padding:14px;border:1.5px solid var(--blind-br);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <span style="font-size:10px;font-weight:700;color:var(--t1);letter-spacing:.06em;text-transform:uppercase;">Lo que dijiste</span>
+          <span style="font-size:10px;font-weight:700;color:var(--t1);letter-spacing:0.06em;text-transform:uppercase;">Lo que dijiste</span>
           <span style="background:var(--blind-l);border:1px solid var(--blind-br);border-radius:4px;padding:2px 5px;font-size:9px;color:var(--blind);font-weight:700;">ESPAÑOL</span>
         </div>
         <div id="blindOutput" style="font-size:15px;color:var(--t2);line-height:1.65;min-height:60px;">Toca el micrófono para comenzar a hablar...</div>
         <div style="margin-top:8px;display:flex;gap:3px;" id="blindWaveform"></div>
         <div style="display:flex;gap:6px;margin-top:10px;">
-          <button onclick="copyBlindText()" style="flex:1;padding:8px;background:var(--surf2);border:1px solid var(--b0);border-radius:var(--r-sm);font-size:11px;color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;font-family:var(--fn);"><span class="mi sm">content_copy</span>Copiar</button>
-          <button onclick="speakBlindText()" style="flex:1;padding:8px;background:var(--blind);border:none;border-radius:var(--r-sm);font-size:11px;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;font-family:var(--fn);"><span class="mi sm fill">volume_up</span>Escuchar</button>
+          <button onclick="copyBlindText()" style="flex:1;padding:8px;background:var(--surf2);border:1px solid var(--b0);border-radius:var(--r-sm);font-size:11px;color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;font-family:var(--fn);">
+            <span class="mi sm">content_copy</span>Copiar
+          </button>
+          <button onclick="speakBlindText()" style="flex:1;padding:8px;background:var(--blind);border:none;border-radius:var(--r-sm);font-size:11px;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;font-family:var(--fn);">
+            <span class="mi sm fill">volume_up</span>Escuchar
+          </button>
         </div>
       </div>
+      
       <div style="display:flex;flex-direction:column;align-items:center;padding:14px 0;">
-        <button id="blindMicBtn" onclick="toggleBlindMic()" style="width:80px;height:80px;border-radius:50%;background:var(--blind);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 24px var(--blind-sh);transition:all .2s;animation:orb-blind 3s ease-in-out infinite;">
+        <button id="blindMicBtn" onclick="toggleBlindMic()" style="width:80px;height:80px;border-radius:50%;background:var(--blind);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 24px var(--blind-sh);transition:all 0.2s;animation:orb-blind 3s ease-in-out infinite;">
           <span class="mi fill xl" style="color:#fff;font-size:34px;">mic</span>
         </button>
         <span id="blindMicStatus" style="font-size:11px;color:var(--t3);margin-top:10px;font-weight:500;">Toca para hablar</span>
       </div>
+      
       <div class="wcard">
         <div style="font-size:11px;font-weight:700;color:var(--t1);margin-bottom:10px;">Acciones rápidas</div>
         <div style="display:flex;flex-direction:column;gap:6px;">
-          <button onclick="speakBlindPhrase('Necesito ayuda')" style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--blind-l);border:1px solid var(--blind-br);border-radius:var(--r-sm);font-size:12px;color:var(--blind);font-family:var(--fn);cursor:pointer;font-weight:500;"><span class="mi sm" style="color:var(--blind);">help</span>Necesito ayuda</button>
-          <button onclick="speakBlindPhrase('Necesito ayuda de emergencia llamar al 911')" style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:#FEF2F2;border:1.5px solid rgba(239,68,68,.3);border-radius:var(--r-sm);font-size:12px;color:#DC2626;font-family:var(--fn);cursor:pointer;font-weight:600;"><span class="mi sm" style="color:#DC2626;">emergency</span>EMERGENCIA</button>
+          <button onclick="speakBlindPhrase('Necesito ayuda')" style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--blind-l);border:1px solid var(--blind-br);border-radius:var(--r-sm);font-size:12px;color:var(--blind);font-family:var(--fn);cursor:pointer;font-weight:500;">
+            <span class="mi sm" style="color:var(--blind);">help</span>Necesito ayuda
+          </button>
+          <button onclick="speakBlindPhrase('Necesito ayuda de emergencia llamar al 911')" style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:#FEF2F2;border:1.5px solid rgba(239,68,68,0.3);border-radius:var(--r-sm);font-size:12px;color:#DC2626;font-family:var(--fn);cursor:pointer;font-weight:600;">
+            <span class="mi sm" style="color:#DC2626;">emergency</span>EMERGENCIA
+          </button>
         </div>
       </div>
-      <div class="wcard"><div style="font-size:11px;font-weight:700;color:var(--t1);margin-bottom:8px;">Historial reciente</div><div id="blindHistory" style="max-height:100px;overflow-y:auto;"><div style="font-size:11px;color:var(--t3);font-style:italic;">Sin transcripciones</div></div></div>
+      
+      <div class="wcard">
+        <div style="font-size:11px;font-weight:700;color:var(--t1);margin-bottom:8px;">Historial reciente</div>
+        <div id="blindHistory" style="max-height:100px;overflow-y:auto;">
+          <div style="font-size:11px;color:var(--t3);font-style:italic;">Sin transcripciones</div>
+        </div>
+      </div>
     </div>
+    
     <div class="bnav">
-      <div class="bni" onclick="go(5)"><span class="mi">home</span><span class="lbl">Inicio</span></div>
+      <div class="bni" onclick="goHome()"><span class="mi">home</span><span class="lbl">Inicio</span></div>
       <div class="bni on-blind"><span class="mi fill" style="color:var(--blind);">mic</span><span class="lbl" style="color:var(--blind);">Dictar</span></div>
       <div class="bni"><span class="mi">history</span><span class="lbl">Historial</span></div>
-      <div class="bni" onclick="go(15)"><span class="mi">settings</span><span class="lbl">Ajustes</span></div>
+      <div class="bni" onclick="openSettings()"><span class="mi">settings</span><span class="lbl">Ajustes</span></div>
     </div>
   </div>
 
-  <!-- ════════════════════════════════════
-       sc7 · CONFIGURACIÓN INICIAL — SORDO
-  ════════════════════════════════════ -->
-  <div class="screen" id="sc7" style="background:var(--surf);position:relative;overflow:hidden;">
-    <div style="position:absolute;top:0;left:0;width:100%;height:120px;background:linear-gradient(180deg,rgba(13,148,136,.06),transparent);pointer-events:none;z-index:0;"></div>
-    <div class="hdr" style="position:relative;z-index:1;">
+
+  <div class="screen" id="sc7" style="background:var(--surf);">
+    <div class="hdr">
       <div class="back-btn" onclick="go(1)"><span class="mi sm" style="color:var(--t2);">arrow_back</span></div>
-      <svg class="logo-topbar" viewBox="0 0 60 60" fill="none"><circle cx="30" cy="30" r="30" fill="#EEF0FF"/><g transform="translate(6,8)"><rect x="10" y="14" width="7" height="22" rx="3.5" fill="#F7D96B"/><rect x="18" y="9" width="6" height="20" rx="3" fill="#F7D96B"/><rect x="25" y="11" width="6" height="18" rx="3" fill="#F7D96B"/><rect x="32" y="14" width="6" height="15" rx="3" fill="#F7D96B"/><rect x="8" y="22" width="30" height="14" rx="6" fill="#F7D96B"/></g><g transform="translate(22,12)"><path d="M14 2C8 2 2 8 2 16C2 24 8 30 14 30C16 30 18 29 19 27L17 25C16 26 15 27 14 27C10 27 5 22 5 16C5 10 10 5 14 5C18 5 23 10 23 16L26 16C26 8 21 2 14 2Z" fill="#7BBFEA"/><path d="M14 10C11 10 8 13 8 16C8 19 10 21 12 22L14 19C13 18 11 17 11 16C11 14 12 13 14 13C16 13 17 14 17 16C17 18 15 19 15 21L18 21C19 19 20 17 20 16C20 13 17 10 14 10Z" fill="#4FA8D8"/></g></svg>
+      <svg class="logo-topbar" viewBox="0 0 60 60" fill="none">
+        <circle cx="30" cy="30" r="30" fill="#EEF0FF"/>
+        <g transform="translate(6,8)"><rect x="10" y="14" width="7" height="22" rx="3.5" fill="#F7D96B"/><rect x="18" y="9" width="6" height="20" rx="3" fill="#F7D96B"/><rect x="25" y="11" width="6" height="18" rx="3" fill="#F7D96B"/><rect x="32" y="14" width="6" height="15" rx="3" fill="#F7D96B"/><rect x="8" y="22" width="30" height="14" rx="6" fill="#F7D96B"/></g>
+        <g transform="translate(22,12)"><path d="M14 2C8 2 2 8 2 16C2 24 8 30 14 30C16 30 18 29 19 27L17 25C16 26 15 27 14 27C10 27 5 22 5 16C5 10 10 5 14 5C18 5 23 10 23 16L26 16C26 8 21 2 14 2Z" fill="#7BBFEA"/><path d="M14 10C11 10 8 13 8 16C8 19 10 21 12 22L14 19C13 18 11 17 11 16C11 14 12 13 14 13C16 13 17 14 17 16C17 18 15 19 15 21L18 21C19 19 20 17 20 16C20 13 17 10 14 10Z" fill="#4FA8D8"/></g>
+      </svg>
       <div style="width:36px;"></div>
     </div>
-    <div class="scroll-content" style="padding:6px 20px 20px;position:relative;z-index:1;">
+    <div class="scroll-content" style="padding:6px 20px 20px;">
       <div class="pbadge pb-deaf"><span class="mi sm" style="color:var(--deaf);">hearing_disabled</span> Perfil: Persona sorda</div>
       <h2 style="font-family:var(--fns);font-size:20px;color:var(--t1);margin-bottom:5px;">Todo listo para ti</h2>
       <p style="font-size:12px;color:var(--t2);line-height:1.6;margin-bottom:14px;">Activé subtítulos, alertas visuales y soporte de señas LSM.</p>
       <div class="wcard" style="margin-bottom:12px;">
-        <div class="pref-row"><div class="pref-ico" style="background:var(--deaf-l);">💬</div><div style="flex:1;"><div class="pref-nm">Subtítulos en tiempo real</div><div class="pref-ds">Texto grande y visible siempre</div></div><div class="tog" style="background:var(--deaf);box-shadow:0 2px 6px var(--deaf-sh);"></div></div>
-        <div class="pref-row"><div class="pref-ico" style="background:var(--deaf-l);">🤟</div><div style="flex:1;"><div class="pref-nm">Avatar de señas LSM 3D</div><div class="pref-ds">Traduce voz a lengua de señas</div></div><div class="tog" style="background:var(--deaf);box-shadow:0 2px 6px var(--deaf-sh);"></div></div>
-        <div class="pref-row"><div class="pref-ico" style="background:var(--deaf-l);">⚡</div><div style="flex:1;"><div class="pref-nm">Flash en notificaciones</div><div class="pref-ds">Alerta visual en lugar de sonido</div></div><div class="tog" style="background:var(--deaf);box-shadow:0 2px 6px var(--deaf-sh);"></div></div>
+        <div class="pref-row"><div class="pref-ico" style="background:var(--deaf-l);"><span class="mi fill" style="color:var(--deaf);">subtitles</span></div><div style="flex:1;"><div class="pref-nm">Subtítulos en tiempo real</div><div class="pref-ds">Texto grande y visible siempre</div></div><div class="tog" style="background:var(--deaf);box-shadow:0 2px 6px var(--deaf-sh);"></div></div>
+        <div class="pref-row"><div class="pref-ico" style="background:var(--deaf-l);"><span class="mi fill" style="color:var(--deaf);">sign_language</span></div><div style="flex:1;"><div class="pref-nm">Avatar de señas LSM 3D</div><div class="pref-ds">Traduce voz a lengua de señas</div></div><div class="tog" style="background:var(--deaf);box-shadow:0 2px 6px var(--deaf-sh);"></div></div>
+        <div class="pref-row"><div class="pref-ico" style="background:var(--deaf-l);"><span class="mi fill" style="color:var(--deaf);">flash_on</span></div><div style="flex:1;"><div class="pref-nm">Flash en notificaciones</div><div class="pref-ds">Alerta visual en lugar de sonido</div></div><div class="tog" style="background:var(--deaf);box-shadow:0 2px 6px var(--deaf-sh);"></div></div>
       </div>
       <button class="btn-p btn-deaf" onclick="go(8)"><span class="mi sm fill" style="color:#fff;">check_circle</span> Entrar a UNIVOZ</button>
     </div>
   </div>
 
-  <!-- ════════════════════════════════════
-       sc8 · HOME — SORDO
-  ════════════════════════════════════ -->
-  <div class="screen" id="sc8" style="background:var(--bg);position:relative;overflow:hidden;">
-    <div class="blob" style="width:160px;height:160px;background:rgba(13,148,136,.08);top:-40px;right:-40px;"></div>
+  
+  <div class="screen" id="sc8" style="background:var(--bg);">
     <div style="background:var(--surf);border-bottom:1.5px solid var(--deaf-br);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
       <div style="display:flex;align-items:center;gap:8px;">
         <div style="width:36px;height:36px;border-radius:12px;background:var(--deaf-l);display:flex;align-items:center;justify-content:center;"><span class="mi fill" style="color:var(--deaf);">hearing_disabled</span></div>
@@ -365,7 +797,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         <div style="background:var(--deaf-l);border:1.5px solid var(--deaf-br);border-radius:var(--pill);padding:3px 9px;font-size:10px;font-weight:700;color:var(--deaf);display:flex;align-items:center;gap:4px;"><span style="width:6px;height:6px;border-radius:50%;background:#10B981;display:inline-block;animation:blink 2s ease-in-out infinite;"></span>Subtítulos ON</div>
-        <div class="back-btn" onclick="go(15)"><span class="mi sm" style="color:var(--deaf);">settings</span></div>
+        <div class="back-btn" onclick="openSettings()"><span class="mi sm" style="color:var(--deaf);">settings</span></div>
       </div>
     </div>
     <div class="scroll-content" style="padding:12px 16px;">
@@ -374,35 +806,33 @@
           <div class="mode-ico" style="background:var(--deaf-l);"><span class="mi fill" style="color:var(--deaf);">closed_caption</span></div>
           <div><div class="mode-lbl" style="font-size:12px;">Subtítulos</div><div class="mode-sub" style="font-size:10px;">En vivo</div></div>
         </div>
-        <div class="mode-card" style="flex:1;margin-bottom:0;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;text-align:center;border-color:rgba(13,148,136,.2);" onclick="go(10)">
+        <div class="mode-card" style="flex:1;margin-bottom:0;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;text-align:center;border-color:rgba(13,148,136,0.2);" onclick="go(10)">
           <div class="mode-ico" style="background:var(--deaf-l);"><span class="mi fill" style="color:var(--deaf);">sign_language</span></div>
           <div><div class="mode-lbl" style="font-size:12px;">Señas LSM</div><div class="mode-sub" style="font-size:10px;">Avatar 3D</div></div>
         </div>
-        <div class="mode-card" style="flex:1;margin-bottom:0;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;text-align:center;border-color:rgba(13,148,136,.2);" onclick="go(11)">
+        <div class="mode-card" style="flex:1;margin-bottom:0;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;text-align:center;border-color:rgba(13,148,136,0.2);" onclick="go(11)">
           <div class="mode-ico" style="background:var(--surf2);"><span class="mi" style="color:var(--t3);">subtitles</span></div>
           <div><div class="mode-lbl" style="font-size:12px;">Transcribir</div><div class="mode-sub" style="font-size:10px;">Audio/Video</div></div>
         </div>
       </div>
       <div class="wcard">
         <div style="font-size:11px;font-weight:700;color:var(--t1);margin-bottom:8px;">Sesiones recientes</div>
-        <div class="rec"><div class="rec-ico" style="background:var(--deaf-l);">🩺</div><div style="flex:1;"><div style="font-size:12px;font-weight:500;color:var(--t1);">Consulta médica</div><div style="font-size:11px;color:var(--t3);">Ayer · Modo Sordo</div></div><span class="mi sm" style="color:var(--deaf);">open_in_new</span></div>
-        <div class="rec"><div class="rec-ico" style="background:var(--deaf-l);">🏛️</div><div style="flex:1;"><div style="font-size:12px;font-weight:500;color:var(--t1);">Clase universitaria</div><div style="font-size:11px;color:var(--t3);">Lun · 42 min transcrito</div></div><span class="mi sm" style="color:var(--deaf);">open_in_new</span></div>
+        <div class="rec"><div class="rec-ico" style="background:var(--deaf-l);"><span class="mi fill" style="color:var(--deaf);">medical_services</span></div><div style="flex:1;"><div style="font-size:12px;font-weight:500;color:var(--t1);">Consulta médica</div><div style="font-size:11px;color:var(--t3);">Ayer · Modo Sordo</div></div><span class="mi sm" style="color:var(--deaf);">open_in_new</span></div>
+        <div class="rec"><div class="rec-ico" style="background:var(--deaf-l);"><span class="mi fill" style="color:var(--deaf);">school</span></div><div style="flex:1;"><div style="font-size:12px;font-weight:500;color:var(--t1);">Clase universitaria</div><div style="font-size:11px;color:var(--t3);">Lun · 42 min transcrito</div></div><span class="mi sm" style="color:var(--deaf);">open_in_new</span></div>
       </div>
     </div>
     <div class="bnav">
       <div class="bni on-deaf"><span class="mi fill" style="color:var(--deaf);">home</span><span class="lbl" style="color:var(--deaf);">Inicio</span></div>
       <div class="bni" onclick="go(9)"><span class="mi">closed_caption</span><span class="lbl">Subtítulos</span></div>
       <div class="bni" onclick="go(10)"><span class="mi">sign_language</span><span class="lbl">Señas</span></div>
-      <div class="bni" onclick="go(15)"><span class="mi">settings</span><span class="lbl">Ajustes</span></div>
+      <div class="bni" onclick="openSettings()"><span class="mi">settings</span><span class="lbl">Ajustes</span></div>
     </div>
   </div>
 
-  <!-- ════════════════════════════════════
-       sc9 · SUBTÍTULOS EN VIVO — SORDO
-  ════════════════════════════════════ -->
+
   <div class="screen" id="sc9" style="background:var(--bg);">
     <div style="background:var(--surf);border-bottom:1px solid var(--deaf-br);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-      <div class="back-btn" onclick="go(8)"><span class="mi sm" style="color:var(--t2);">arrow_back</span></div>
+      <div class="back-btn" onclick="goHome()"><span class="mi sm" style="color:var(--t2);">arrow_back</span></div>
       <div style="text-align:center;"><div style="font-size:13px;font-weight:700;color:var(--deaf);">Subtítulos en vivo</div><div style="font-size:10px;color:var(--t3);">Lo que dicen a tu alrededor</div></div>
       <div class="back-btn"><span class="mi sm" style="color:var(--deaf);">text_format</span></div>
     </div>
@@ -412,9 +842,7 @@
     </div>
     <div class="scroll-content" style="padding:12px 16px;gap:10px;display:flex;flex-direction:column;">
       <div>
-        <div id="deafSubtitle" class="subtitle-live" style="min-height:90px;font-size:20px;cursor:pointer;" onclick="toggleDeafTranscription()">
-          "Toca aquí o presiona el botón para iniciar..."<span style="display:inline-block;width:2px;height:22px;background:var(--deaf);margin-left:2px;vertical-align:middle;animation:blink .8s ease-in-out infinite;"></span>
-        </div>
+        <div id="deafSubtitle" class="subtitle-live" style="min-height:90px;font-size:20px;cursor:pointer;" onclick="toggleDeafTranscription()">"Toca aquí o presiona el botón para iniciar..."<span style="display:inline-block;width:2px;height:22px;background:var(--deaf);margin-left:2px;vertical-align:middle;animation:blink .8s ease-in-out infinite;"></span></div>
         <div style="display:flex;gap:8px;margin-top:10px;">
           <button id="deafStartBtn" onclick="toggleDeafTranscription()" style="flex:1;padding:11px;background:var(--deaf);border:none;border-radius:var(--r-sm);font-size:12px;font-weight:600;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:var(--fn);"><span class="mi sm fill">mic</span><span id="deafBtnText">Iniciar escucha</span></button>
           <button onclick="clearDeafSubtitle()" style="padding:11px 16px;background:var(--surf);border:1.5px solid var(--deaf-br);border-radius:var(--r-sm);font-size:12px;font-weight:600;color:var(--deaf);cursor:pointer;"><span class="mi sm">delete</span></button>
@@ -427,95 +855,69 @@
           <button class="phrase" onclick="quickDeafPhrase('No')" style="border-color:var(--deaf-br);color:var(--deaf);background:var(--deaf-l);">No</button>
           <button class="phrase" onclick="quickDeafPhrase('Gracias')" style="border-color:var(--deaf-br);color:var(--deaf);background:var(--deaf-l);">Gracias</button>
           <button class="phrase" onclick="quickDeafPhrase('¿Puedes repetir?')" style="border-color:var(--deaf-br);color:var(--deaf);background:var(--deaf-l);">¿Repetir?</button>
-          <button class="phrase" onclick="emergencyDeaf()" style="border-color:rgba(239,68,68,.4);color:#DC2626;background:#FEF2F2;">🚨 Emergencia</button>
+          <button class="phrase" onclick="emergencyDeaf()" style="border-color:rgba(239,68,68,0.4);color:#DC2626;background:#FEF2F2;"><span class="mi sm" style="color:#DC2626;">emergency</span> Emergencia</button>
         </div>
       </div>
       <div class="wcard"><div style="font-size:11px;font-weight:700;color:var(--t1);margin-bottom:8px;">Historial de sesión</div><div id="deafHistory" style="max-height:80px;overflow-y:auto;"><div style="font-size:11px;color:var(--t3);font-style:italic;">La sesión aparecerá aquí</div></div></div>
     </div>
     <div class="bnav">
       <div class="bni" onclick="go(8)"><span class="mi">home</span><span class="lbl">Inicio</span></div>
-      <div class="bni on-deaf"><span class="mi fill" style="color:var(--deaf);">closed_caption</span><span class="lbl" style="color:var(--deaf);">Sesión</span></div>
+      <div class="bni on-deaf"><span class="mi fill" style="color:var(--deaf);">closed_caption</span><span class="lbl" style="color:var(--deaf);">Subtítulos</span></div>
       <div class="bni" onclick="go(10)"><span class="mi">sign_language</span><span class="lbl">Señas</span></div>
-      <div class="bni" onclick="go(15)"><span class="mi">settings</span><span class="lbl">Ajustes</span></div>
+      <div class="bni" onclick="openSettings()"><span class="mi">settings</span><span class="lbl">Ajustes</span></div>
     </div>
   </div>
 
-  <!-- ════════════════════════════════════
-       sc10 · SEÑAS LSM 3D
-       ★ Integración completa del módulo
-         univoz_lsm_v4_fix.html
-         Canvas Three.js + alfabeto + frases
-  ════════════════════════════════════ -->
+
   <div class="screen" id="sc10" style="background:#090F0E;">
-    <!-- Topbar -->
-    <div style="background:rgba(13,148,136,.07);border-bottom:1px solid rgba(13,148,136,.13);padding:8px 13px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-      <div class="back-btn" style="background:rgba(13,148,136,.1);border-color:rgba(13,148,136,.2);" onclick="go(8)"><span class="mi sm" style="color:#0D9488;">arrow_back</span></div>
+    <div style="background:rgba(13,148,136,0.07);border-bottom:1px solid rgba(13,148,136,0.13);padding:8px 13px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div class="back-btn" style="background:rgba(13,148,136,0.1);border-color:rgba(13,148,136,0.2);" onclick="goHome()"><span class="mi sm" style="color:#0D9488;">arrow_back</span></div>
       <div>
         <div style="font-size:13px;font-weight:700;color:#0D9488;">Señas LSM</div>
-        <div style="font-size:9px;color:rgba(13,148,136,.48);">Lengua de Señas Mexicana · Dos manos</div>
+        <div style="font-size:9px;color:rgba(13,148,136,0.48);">Lengua de Señas Mexicana · Dos manos</div>
       </div>
-      <div style="display:flex;align-items:center;gap:4px;background:rgba(13,148,136,.13);border:1px solid rgba(13,148,136,.28);border-radius:9999px;padding:3px 9px;font-size:10px;font-weight:700;color:#0D9488;">
+      <div style="display:flex;align-items:center;gap:4px;background:rgba(13,148,136,0.13);border:1px solid rgba(13,148,136,0.28);border-radius:9999px;padding:3px 9px;font-size:10px;font-weight:700;color:#0D9488;">
         <div style="width:5px;height:5px;border-radius:50%;background:#10B981;animation:blink 1.8s ease-in-out infinite;"></div>En vivo
       </div>
     </div>
-
-    <!-- Canvas Three.js — renderizado de manos 3D -->
-    <canvas id="lsmCanvas" style="width:100%;height:260px;display:block;background:#050C0A;"></canvas>
-
-    <!-- Etiqueta de la seña activa -->
+    <canvas id="lsmCanvas" style="width:100%;height:260px;display:block;background:#050C0A;flex-shrink:0;"></canvas>
     <div style="background:#040D0C;border-left:4px solid #0D9488;padding:8px 13px;display:flex;align-items:center;gap:10px;min-height:50px;flex-shrink:0;">
-      <div id="lLetter" style="font-size:32px;font-weight:700;color:#0D9488;min-width:40px;text-align:center;line-height:1;font-family:monospace;">🤟</div>
+      <div id="lLetter" style="font-size:32px;font-weight:700;color:#0D9488;min-width:40px;text-align:center;line-height:1;font-family:monospace;">A</div>
       <div style="flex:1;">
         <div id="lName" style="font-size:13px;font-weight:600;color:#fff;line-height:1.25;">Toca una letra para ver la seña<span style="display:inline-block;width:2px;height:13px;background:#0D9488;margin-left:2px;vertical-align:middle;animation:blink .7s ease-in-out infinite;"></span></div>
-        <div id="lDesc" style="font-size:10px;color:rgba(13,148,136,.6);margin-top:2px;line-height:1.4;">27 letras LSM + frases · mano dominante + base</div>
-        <div id="handInd" style="display:flex;gap:5px;margin-top:4px;flex-wrap:wrap;">
-          <span style="font-size:9px;padding:2px 7px;border-radius:9999px;font-weight:700;border:1px solid;background:rgba(13,148,136,.15);border-color:rgba(13,148,136,.35);color:#0D9488;">✋ Dominante</span>
-          <span style="font-size:9px;padding:2px 7px;border-radius:9999px;font-weight:700;border:1px solid;background:rgba(100,100,255,.1);border-color:rgba(100,100,255,.25);color:#9999FF;">🤚 Base</span>
-        </div>
+        <div id="lDesc" style="font-size:10px;color:rgba(13,148,136,0.6);margin-top:2px;line-height:1.4;">27 letras LSM + frases · mano dominante + base</div>
       </div>
     </div>
-
-    <!-- Cuadrícula alfabeto dactilológico -->
     <div style="padding:8px 10px 5px;flex-shrink:0;">
-      <div style="font-size:8px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:rgba(13,148,136,.4);margin-bottom:5px;">🤟 Alfabeto dactilológico LSM</div>
+      <div style="font-size:8px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(13,148,136,0.4);margin-bottom:5px;">Alfabeto dactilológico LSM</div>
       <div id="alphaGrid" style="display:grid;grid-template-columns:repeat(9,1fr);gap:2px;"></div>
     </div>
-
-    <!-- Dígrafos LSM -->
     <div id="specialGrid" style="display:flex;gap:4px;padding:0 10px 6px;flex-wrap:wrap;align-items:center;flex-shrink:0;"></div>
-
-    <!-- Frases rápidas -->
     <div id="phraseRow" style="display:flex;gap:4px;padding:0 10px 7px;flex-wrap:wrap;flex-shrink:0;"></div>
-
-    <!-- Input de deletreo + velocidad -->
-    <div style="padding:6px 10px 8px;border-top:1px solid rgba(13,148,136,.1);flex-shrink:0;">
-      <input id="lsmInput" class="lsm-input" type="text" placeholder="Escribe para deletrear en señas LSM…" maxlength="24"/>
+    <div style="padding:6px 10px 8px;border-top:1px solid rgba(13,148,136,0.1);flex-shrink:0;">
+      <input id="lsmInput" class="lsm-input" type="text" placeholder="Escribe para deletrear en señas LSM…" maxlength="24" style="width:100%;padding:10px 14px;background:rgba(13,148,136,0.08);border:1.5px solid rgba(13,148,136,0.2);border-radius:var(--pill);font-size:14px;color:#fff;font-family:var(--fn);outline:none;"/>
       <div style="display:flex;gap:4px;margin-top:5px;">
-        <button onclick="spellWord()" style="flex:1;padding:8px;background:#0D9488;border:none;border-radius:9999px;font-size:11px;font-weight:700;color:#fff;cursor:pointer;font-family:var(--fn);">🤟 Deletrear</button>
-        <button onclick="clearLSM()" style="padding:8px 11px;background:rgba(13,148,136,.09);border:1.5px solid rgba(13,148,136,.16);border-radius:9999px;font-size:11px;color:#0D9488;cursor:pointer;">✕</button>
+        <button onclick="spellWord()" style="flex:1;padding:8px;background:#0D9488;border:none;border-radius:9999px;font-size:11px;font-weight:700;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;font-family:var(--fn);"><span class="mi fill sm" style="color:#fff;">sign_language</span> Deletrear</button>
+        <button onclick="clearLSM()" style="padding:8px 11px;background:rgba(13,148,136,0.09);border:1.5px solid rgba(13,148,136,0.16);border-radius:9999px;font-size:11px;color:#0D9488;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:var(--fn);"><span class="mi sm">delete</span> Clear</button>
       </div>
       <div style="display:flex;align-items:center;gap:6px;margin-top:5px;">
-        <label style="font-size:9px;color:rgba(13,148,136,.45);white-space:nowrap;">Velocidad</label>
+        <label style="font-size:9px;color:rgba(13,148,136,0.45);white-space:nowrap;">Velocidad</label>
         <input type="range" min="300" max="1800" value="1000" id="lsmSpeedSlider" oninput="setLSMSpd(this.value)" style="flex:1;accent-color:#0D9488;"/>
         <span id="lsmSpeedVal" style="font-size:9px;font-weight:700;color:#0D9488;min-width:30px;text-align:right;">Normal</span>
       </div>
     </div>
-
-    <!-- Barra de navegación inferior (modo sordo) -->
-    <div class="bnav" style="background:rgba(3,10,9,.98);border-top:1px solid rgba(13,148,136,.1);">
-      <div class="bni" onclick="go(8)"><span class="mi" style="color:rgba(13,148,136,.4);">home</span><span class="lbl">Inicio</span></div>
-      <div class="bni" onclick="go(9)"><span class="mi" style="color:rgba(13,148,136,.4);">closed_caption</span><span class="lbl">Subtítulos</span></div>
+    <div class="bnav" style="background:rgba(3,10,9,0.98);border-top:1px solid rgba(13,148,136,0.1);">
+      <div class="bni" onclick="go(8)"><span class="mi" style="color:rgba(13,148,136,0.4);">home</span><span class="lbl">Inicio</span></div>
+      <div class="bni" onclick="go(9)"><span class="mi" style="color:rgba(13,148,136,0.4);">closed_caption</span><span class="lbl">Subtítulos</span></div>
       <div class="bni on-deaf"><span class="mi fill" style="color:#0D9488;">sign_language</span><span class="lbl" style="color:#0D9488;">Señas</span></div>
-      <div class="bni" onclick="go(15)"><span class="mi" style="color:rgba(13,148,136,.4);">settings</span><span class="lbl">Ajustes</span></div>
+      <div class="bni" onclick="openSettings()"><span class="mi" style="color:rgba(13,148,136,0.4);">settings</span><span class="lbl">Ajustes</span></div>
     </div>
   </div>
 
-  <!-- ════════════════════════════════════
-       sc11 · TRANSCRIPCIÓN AUDIO/VIDEO — SORDO
-  ════════════════════════════════════ -->
+
   <div class="screen" id="sc11" style="background:var(--bg);">
     <div style="background:var(--surf);border-bottom:1px solid var(--deaf-br);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-      <div class="back-btn" onclick="go(8)"><span class="mi sm" style="color:var(--t2);">arrow_back</span></div>
+      <div class="back-btn" onclick="goHome()"><span class="mi sm" style="color:var(--t2);">arrow_back</span></div>
       <div style="text-align:center;"><div style="font-size:13px;font-weight:700;color:var(--deaf);">Transcripción</div><div style="font-size:10px;color:var(--t3);">Video o audio a texto</div></div>
       <div style="width:36px;"></div>
     </div>
@@ -544,7 +946,7 @@
       </div>
       <div style="background:var(--surf);border-radius:var(--r);padding:14px;border:1.5px solid var(--deaf-br);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <span style="font-size:10px;font-weight:700;color:var(--t1);letter-spacing:.06em;text-transform:uppercase;">Resultado</span>
+          <span style="font-size:10px;font-weight:700;color:var(--t1);letter-spacing:0.06em;text-transform:uppercase;">Resultado</span>
           <span id="transcribeStatus" style="background:var(--surf2);border:1px solid var(--b0);border-radius:4px;padding:2px 6px;font-size:9px;color:var(--t3);font-weight:700;">Esperando…</span>
         </div>
         <div id="transcribeOutput" style="font-size:13px;color:var(--t2);line-height:1.6;min-height:70px;white-space:pre-wrap;">La transcripción aparecerá aquí...</div>
@@ -561,52 +963,54 @@
     </div>
     <div class="bnav">
       <div class="bni" onclick="go(8)"><span class="mi">home</span><span class="lbl">Inicio</span></div>
-      <div class="bni on-deaf"><span class="mi fill" style="color:var(--deaf);">subtitles</span><span class="lbl" style="color:var(--deaf);">Transcribir</span></div>
+      <div class="bni" onclick="go(9)"><span class="mi">closed_caption</span><span class="lbl">Subtítulos</span></div>
       <div class="bni" onclick="go(10)"><span class="mi">sign_language</span><span class="lbl">Señas</span></div>
-      <div class="bni" onclick="go(15)"><span class="mi">settings</span><span class="lbl">Ajustes</span></div>
+      <div class="bni" onclick="openSettings()"><span class="mi">settings</span><span class="lbl">Ajustes</span></div>
     </div>
   </div>
 
-  <!-- ════════════════════════════════════
-       sc12 · CONFIGURACIÓN INICIAL — MUDO
-  ════════════════════════════════════ -->
-  <div class="screen" id="sc12" style="background:var(--surf);position:relative;overflow:hidden;">
-    <div style="position:absolute;top:0;left:0;width:100%;height:120px;background:linear-gradient(180deg,rgba(217,119,6,.06),transparent);pointer-events:none;z-index:0;"></div>
-    <div class="hdr" style="position:relative;z-index:1;">
+
+  <div class="screen" id="sc12" style="background:var(--surf);">
+    <div class="hdr">
       <div class="back-btn" onclick="go(1)"><span class="mi sm" style="color:var(--t2);">arrow_back</span></div>
-      <svg class="logo-topbar" viewBox="0 0 60 60" fill="none"><circle cx="30" cy="30" r="30" fill="#EEF0FF"/><g transform="translate(6,8)"><rect x="10" y="14" width="7" height="22" rx="3.5" fill="#F7D96B"/><rect x="18" y="9" width="6" height="20" rx="3" fill="#F7D96B"/><rect x="25" y="11" width="6" height="18" rx="3" fill="#F7D96B"/><rect x="32" y="14" width="6" height="15" rx="3" fill="#F7D96B"/><rect x="8" y="22" width="30" height="14" rx="6" fill="#F7D96B"/></g><g transform="translate(22,12)"><path d="M14 2C8 2 2 8 2 16C2 24 8 30 14 30C16 30 18 29 19 27L17 25C16 26 15 27 14 27C10 27 5 22 5 16C5 10 10 5 14 5C18 5 23 10 23 16L26 16C26 8 21 2 14 2Z" fill="#7BBFEA"/><path d="M14 10C11 10 8 13 8 16C8 19 10 21 12 22L14 19C13 18 11 17 11 16C11 14 12 13 14 13C16 13 17 14 17 16C17 18 15 19 15 21L18 21C19 19 20 17 20 16C20 13 17 10 14 10Z" fill="#4FA8D8"/></g></svg>
+      <svg class="logo-topbar" viewBox="0 0 60 60" fill="none">
+        <circle cx="30" cy="30" r="30" fill="#EEF0FF"/>
+        <g transform="translate(6,8)"><rect x="10" y="14" width="7" height="22" rx="3.5" fill="#F7D96B"/><rect x="18" y="9" width="6" height="20" rx="3" fill="#F7D96B"/><rect x="25" y="11" width="6" height="18" rx="3" fill="#F7D96B"/><rect x="32" y="14" width="6" height="15" rx="3" fill="#F7D96B"/><rect x="8" y="22" width="30" height="14" rx="6" fill="#F7D96B"/></g>
+        <g transform="translate(22,12)"><path d="M14 2C8 2 2 8 2 16C2 24 8 30 14 30C16 30 18 29 19 27L17 25C16 26 15 27 14 27C10 27 5 22 5 16C5 10 10 5 14 5C18 5 23 10 23 16L26 16C26 8 21 2 14 2Z" fill="#7BBFEA"/><path d="M14 10C11 10 8 13 8 16C8 19 10 21 12 22L14 19C13 18 11 17 11 16C11 14 12 13 14 13C16 13 17 14 17 16C17 18 15 19 15 21L18 21C19 19 20 17 20 16C20 13 17 10 14 10Z" fill="#4FA8D8"/></g>
+      </svg>
       <div style="width:36px;"></div>
     </div>
-    <div class="scroll-content" style="padding:6px 20px 20px;position:relative;z-index:1;">
+    <div class="scroll-content" style="padding:6px 20px 20px;">
       <div class="pbadge pb-mute"><span class="mi sm" style="color:var(--mute-c);">voice_over_off</span> Perfil: Persona muda</div>
       <h2 style="font-family:var(--fns);font-size:20px;color:var(--t1);margin-bottom:5px;">Todo listo para ti</h2>
       <p style="font-size:12px;color:var(--t2);line-height:1.6;margin-bottom:14px;">Activé el sintetizador de voz y las frases rápidas.</p>
       <div class="wcard" style="margin-bottom:12px;">
-        <div class="pref-row"><div class="pref-ico" style="background:var(--mute-l);">🔊</div><div style="flex:1;"><div class="pref-nm">Sintetizador de voz</div><div class="pref-ds">Lee en voz alta lo que escribes</div></div><div class="tog" style="background:var(--mute-c);box-shadow:0 2px 6px var(--mute-sh);"></div></div>
-        <div class="pref-row"><div class="pref-ico" style="background:var(--mute-l);">⚡</div><div style="flex:1;"><div class="pref-nm">Frases rápidas</div><div class="pref-ds">Respuestas frecuentes en un toque</div></div><div class="tog" style="background:var(--mute-c);box-shadow:0 2px 6px var(--mute-sh);"></div></div>
+        <div class="pref-row"><div class="pref-ico" style="background:var(--mute-l);"><span class="mi fill" style="color:var(--mute-c);">volume_up</span></div><div style="flex:1;"><div class="pref-nm">Sintetizador de voz</div><div class="pref-ds">Lee en voz alta lo que escribes</div></div><div class="tog" style="background:var(--mute-c);box-shadow:0 2px 6px var(--mute-sh);"></div></div>
+        <div class="pref-row"><div class="pref-ico" style="background:var(--mute-l);"><span class="mi fill" style="color:var(--mute-c);">flash_on</span></div><div style="flex:1;"><div class="pref-nm">Frases rápidas</div><div class="pref-ds">Respuestas frecuentes en un toque</div></div><div class="tog" style="background:var(--mute-c);box-shadow:0 2px 6px var(--mute-sh);"></div></div>
+        <div class="pref-row"><div class="pref-ico" style="background:var(--mute-l);"><span class="mi" style="color:var(--t3);">translate</span></div><div style="flex:1;"><div class="pref-nm">Traducción automática</div><div class="pref-ds">Traduce al idioma del interlocutor</div></div><div class="tog off"></div></div>
       </div>
       <button class="btn-p btn-mute" onclick="go(13)"><span class="mi sm fill" style="color:#fff;">check_circle</span> Entrar a UNIVOZ</button>
     </div>
   </div>
 
-  <!-- ════════════════════════════════════
-       sc13 · HOME — MUDO
-  ════════════════════════════════════ -->
-  <div class="screen" id="sc13" style="background:var(--bg);position:relative;overflow:hidden;">
-    <div class="blob" style="width:160px;height:160px;background:rgba(217,119,6,.08);top:-40px;right:-40px;"></div>
+  
+  <div class="screen" id="sc13" style="background:var(--bg);">
     <div style="background:var(--surf);border-bottom:1.5px solid var(--mute-br);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
       <div style="display:flex;align-items:center;gap:8px;">
         <div style="width:36px;height:36px;border-radius:12px;background:var(--mute-l);display:flex;align-items:center;justify-content:center;"><span class="mi fill" style="color:var(--mute-c);">voice_over_off</span></div>
         <div><div style="font-size:10px;color:var(--t3);font-weight:500;">Modo Mudo activo</div><div style="font-size:14px;font-weight:700;color:var(--t1);">Hola, bienvenida/o</div></div>
       </div>
-      <div class="back-btn" onclick="go(15)"><span class="mi sm" style="color:var(--mute-c);">settings</span></div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="background:var(--mute-l);border:1.5px solid var(--mute-br);border-radius:var(--pill);padding:3px 9px;font-size:10px;font-weight:700;color:var(--mute-c);display:flex;align-items:center;gap:4px;"><span style="width:6px;height:6px;border-radius:50%;background:#10B981;display:inline-block;animation:blink 2s ease-in-out infinite;"></span>Voz ON</div>
+        <div class="back-btn" onclick="openSettings()"><span class="mi sm" style="color:var(--mute-c);">settings</span></div>
+      </div>
     </div>
     <div class="scroll-content" style="padding:12px 16px;">
       <button class="btn-p btn-mute" onclick="go(14)" style="margin-bottom:12px;"><span class="mi fill sm">keyboard</span> Escribir y hablar ahora</button>
       <div style="font-size:11px;font-weight:700;color:var(--t1);margin-bottom:8px;">Frases frecuentes</div>
       <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
         <button onclick="quickMuteSpeak('Hola, ¿me puedes ayudar?')" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--surf);border:1.5px solid var(--mute-br);border-radius:var(--r-sm);font-size:13px;color:var(--mute-c);font-family:var(--fn);cursor:pointer;font-weight:600;"><span class="mi fill sm" style="color:var(--mute-c);">volume_up</span>Hola, ¿me puedes ayudar?</button>
-        <button onclick="quickMuteSpeak('Necesito ayuda de emergencia')" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#FEF2F2;border:1.5px solid rgba(239,68,68,.3);border-radius:var(--r-sm);font-size:13px;color:#DC2626;font-family:var(--fn);cursor:pointer;font-weight:600;"><span class="mi fill sm">emergency</span>EMERGENCIA</button>
+        <button onclick="quickMuteSpeak('Necesito ayuda de emergencia')" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#FEF2F2;border:1.5px solid rgba(239,68,68,0.3);border-radius:var(--r-sm);font-size:13px;color:#DC2626;font-family:var(--fn);cursor:pointer;font-weight:600;"><span class="mi fill sm">emergency</span>EMERGENCIA</button>
       </div>
       <div class="wcard"><div style="font-size:11px;font-weight:700;color:var(--t1);margin-bottom:8px;">Lo que dije antes</div><div id="muteHomeHistory" style="max-height:80px;overflow-y:auto;"><div style="font-size:11px;color:var(--t3);font-style:italic;">Sin historial</div></div></div>
     </div>
@@ -614,161 +1018,196 @@
       <div class="bni on-mute"><span class="mi fill" style="color:var(--mute-c);">home</span><span class="lbl" style="color:var(--mute-c);">Inicio</span></div>
       <div class="bni" onclick="go(14)"><span class="mi">keyboard</span><span class="lbl">Escribir</span></div>
       <div class="bni"><span class="mi">history</span><span class="lbl">Historial</span></div>
-      <div class="bni" onclick="go(15)"><span class="mi">settings</span><span class="lbl">Ajustes</span></div>
+      <div class="bni" onclick="openSettings()"><span class="mi">settings</span><span class="lbl">Ajustes</span></div>
     </div>
   </div>
 
-  <!-- ════════════════════════════════════
-       sc14 · TEXTO A VOZ — MUDO
-  ════════════════════════════════════ -->
+
   <div class="screen" id="sc14" style="background:var(--bg);">
     <div style="background:var(--surf);border-bottom:1px solid var(--mute-br);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-      <div class="back-btn" onclick="go(13)"><span class="mi sm" style="color:var(--t2);">arrow_back</span></div>
+      <div class="back-btn" onclick="goHome()"><span class="mi sm" style="color:var(--t2);">arrow_back</span></div>
       <div style="text-align:center;"><div style="font-size:13px;font-weight:700;color:var(--mute-c);">Modo Mudo</div><div style="font-size:10px;color:var(--t3);">La app habla por ti</div></div>
       <div class="back-btn"><span class="mi sm" style="color:var(--mute-c);">settings</span></div>
+    </div>
+    <div class="mode-header mute-h">
+      <div class="mode-ava" style="background:var(--mute-c);"><span class="mi fill" style="color:#fff;font-size:22px;">keyboard</span></div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--t1);">Texto a Voz</div>
+        <div style="display:flex;align-items:center;gap:5px;"><div class="live-dot" style="background:var(--mute-c);"></div><span style="font-size:11px;color:var(--mute-c);font-weight:600;">Escribe → Reproduce en voz alta</span></div>
+      </div>
     </div>
     <div class="scroll-content" style="padding:12px 16px;gap:10px;display:flex;flex-direction:column;">
       <div style="background:var(--surf);border-radius:var(--r);padding:14px;border:1.5px solid var(--mute-br);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <span style="font-size:10px;font-weight:700;color:var(--t1);letter-spacing:.06em;text-transform:uppercase;">Escribe lo que quieres decir</span>
+          <span style="font-size:10px;font-weight:700;color:var(--t1);letter-spacing:0.06em;text-transform:uppercase;">Escribe lo que quieres decir</span>
           <span style="background:var(--mute-l);border:1px solid var(--mute-br);border-radius:4px;padding:2px 5px;font-size:9px;color:var(--mute-c);font-weight:700;" id="muteCharCount">0 / 300</span>
         </div>
-        <textarea id="muteTextInput" style="width:100%;background:var(--surf2);border:1.5px solid var(--mute-br);border-radius:var(--r-sm);padding:12px;font-size:14px;color:var(--t1);font-family:var(--fn);resize:none;outline:none;height:90px;" placeholder="Escribe aquí y toca '▶ Decir'..." oninput="updateMuteCharCount()"></textarea>
+        <textarea id="muteTextInput" style="width:100%;background:var(--surf2);border:1.5px solid var(--mute-br);border-radius:var(--r-sm);padding:12px;font-size:14px;color:var(--t1);font-family:var(--fn);resize:none;outline:none;height:90px;" placeholder="Escribe aquí y toca 'Decir'..." oninput="updateMuteCharCount()"></textarea>
         <div style="display:flex;gap:8px;margin-top:10px;">
-          <button onclick="speakMuteText()" style="flex:1;padding:13px;background:var(--mute-c);border:none;border-radius:var(--r-sm);font-size:13px;font-weight:700;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:var(--fn);"><span class="mi sm fill">volume_up</span>▶ Decir</button>
+          <button onclick="speakMuteText()" style="flex:1;padding:13px;background:var(--mute-c);border:none;border-radius:var(--r-sm);font-size:13px;font-weight:700;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:var(--fn);"><span class="mi sm fill">volume_up</span>Decir</button>
           <button onclick="clearMuteText()" style="padding:13px 14px;background:var(--surf);border:1.5px solid var(--mute-br);border-radius:var(--r-sm);font-size:12px;font-weight:600;color:var(--mute-c);cursor:pointer;"><span class="mi sm">delete</span></button>
         </div>
       </div>
+      <div class="wcard" style="padding:12px 14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-size:11px;font-weight:700;color:var(--t1);">Velocidad de voz</span>
+          <span style="font-size:11px;color:var(--mute-c);font-weight:700;" id="muteSpeedLabel">Normal</span>
+        </div>
+        <input type="range" id="muteSpeed" min="0.5" max="2" step="0.1" value="1" style="width:100%;accent-color:var(--mute-c);" oninput="updateMuteSpeed(this.value)">
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t4);margin-top:2px;"><span>Lento</span><span>Normal</span><span>Rápido</span></div>
+      </div>
       <div class="wcard">
-        <div style="font-size:11px;font-weight:700;color:var(--t1);margin-bottom:10px;">Frases frecuentes — toca para decir</div>
+        <div style="font-size:11px;font-weight:700;color:var(--t1);margin-bottom:10px;">Frases frecuentes → toca para decir</div>
         <div style="display:flex;flex-direction:column;gap:6px;">
-          <button class="phrase" onclick="setMutePhrase('Hola, ¿me puedes ayudar?')" style="border-color:var(--mute-br);color:var(--mute);background:var(--mute-l);">🙋 Hola, ¿me puedes ayudar?</button>
-          <button class="phrase" onclick="setMutePhrase('Por favor, más despacio')" style="border-color:var(--mute-br);color:var(--mute);background:var(--mute-l);">🐢 Por favor, más despacio</button>
-          <button class="phrase" onclick="setMutePhrase('Gracias por tu paciencia')" style="border-color:var(--mute-br);color:var(--mute);background:var(--mute-l);">❤️ Gracias por tu paciencia</button>
-          <button class="phrase" onclick="setMutePhrase('Necesito ayuda de emergencia')" style="border-color:rgba(239,68,68,.4);color:#DC2626;background:#FEF2F2;">🚨 Emergencia — necesito ayuda</button>
+          <button class="phrase" onclick="setMutePhrase('Hola, ¿me puedes ayudar?')" style="border-color:var(--mute-br);color:var(--mute);background:var(--mute-l);display:flex;align-items:center;gap:6px;"><span class="mi fill sm" style="color:var(--mute-c);">volume_up</span> Hola, ¿me puedes ayudar?</button>
+          <button class="phrase" onclick="setMutePhrase('¿Cuánto cuesta?')" style="border-color:var(--mute-br);color:var(--mute);background:var(--mute-l);display:flex;align-items:center;gap:6px;"><span class="mi fill sm" style="color:var(--mute-c);">payments</span> ¿Cuánto cuesta?</button>
+          <button class="phrase" onclick="setMutePhrase('Por favor, más despacio')" style="border-color:var(--mute-br);color:var(--mute);background:var(--mute-l);display:flex;align-items:center;gap:6px;"><span class="mi fill sm" style="color:var(--mute-c);">slow_motion_video</span> Por favor, más despacio</button>
+          <button class="phrase" onclick="setMutePhrase('Gracias por tu paciencia')" style="border-color:var(--mute-br);color:var(--mute);background:var(--mute-l);display:flex;align-items:center;gap:6px;"><span class="mi fill sm" style="color:var(--mute-c);">favorite</span> Gracias por tu paciencia</button>
+          <button class="phrase" onclick="setMutePhrase('Necesito ayuda de emergencia')" style="border-color:rgba(239,68,68,0.4);color:#DC2626;background:#FEF2F2;display:flex;align-items:center;gap:6px;"><span class="mi fill sm" style="color:#DC2626;">emergency</span> Emergencia → necesito ayuda</button>
         </div>
       </div>
-      <div class="wcard"><div style="font-size:11px;font-weight:700;color:var(--t1);margin-bottom:8px;">Lo que dijiste antes</div><div id="muteHistory" style="max-height:80px;overflow-y:auto;"><div style="font-size:11px;color:var(--t3);font-style:italic;">Sin historial</div></div></div>
+      <div class="wcard">
+        <div style="font-size:11px;font-weight:700;color:var(--t1);margin-bottom:8px;">Lo que dijiste antes</div>
+        <div id="muteHistory" style="max-height:80px;overflow-y:auto;"><div style="font-size:11px;color:var(--t3);font-style:italic;">Sin historial</div></div>
+      </div>
     </div>
     <div class="bnav">
       <div class="bni" onclick="go(13)"><span class="mi">home</span><span class="lbl">Inicio</span></div>
-      <div class="bni on-mute"><span class="mi fill" style="color:var(--mute-c);">volume_up</span><span class="lbl" style="color:var(--mute-c);">Hablar</span></div>
+      <div class="bni on-mute"><span class="mi fill" style="color:var(--mute-c);">keyboard</span><span class="lbl" style="color:var(--mute-c);">Escribir</span></div>
       <div class="bni"><span class="mi">history</span><span class="lbl">Historial</span></div>
-      <div class="bni" onclick="go(15)"><span class="mi">settings</span><span class="lbl">Ajustes</span></div>
+      <div class="bni" onclick="openSettings()"><span class="mi">settings</span><span class="lbl">Ajustes</span></div>
     </div>
   </div>
 
-  <!-- ════════════════════════════════════
-       sc15 · AJUSTES GENERALES
-  ════════════════════════════════════ -->
-  <div class="screen" id="sc15" style="background:var(--surf);">
-    <div style="background:var(--surf);border-bottom:1px solid var(--bn);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-      <div class="back-btn" onclick="go(5)"><span class="mi sm" style="color:var(--t2);">arrow_back</span></div>
-      <svg class="logo-topbar" viewBox="0 0 60 60" fill="none"><circle cx="30" cy="30" r="30" fill="#EEF0FF"/><g transform="translate(6,8)"><rect x="10" y="14" width="7" height="22" rx="3.5" fill="#F7D96B"/><rect x="18" y="9" width="6" height="20" rx="3" fill="#F7D96B"/><rect x="25" y="11" width="6" height="18" rx="3" fill="#F7D96B"/><rect x="32" y="14" width="6" height="15" rx="3" fill="#F7D96B"/><rect x="8" y="22" width="30" height="14" rx="6" fill="#F7D96B"/></g><g transform="translate(22,12)"><path d="M14 2C8 2 2 8 2 16C2 24 8 30 14 30C16 30 18 29 19 27L17 25C16 26 15 27 14 27C10 27 5 22 5 16C5 10 10 5 14 5C18 5 23 10 23 16L26 16C26 8 21 2 14 2Z" fill="#7BBFEA"/><path d="M14 10C11 10 8 13 8 16C8 19 10 21 12 22L14 19C13 18 11 17 11 16C11 14 12 13 14 13C16 13 17 14 17 16C17 18 15 19 15 21L18 21C19 19 20 17 20 16C20 13 17 10 14 10Z" fill="#4FA8D8"/></g></svg>
-      <div style="width:36px;"></div>
-    </div>
-    <div class="scroll-content" style="padding:14px 18px 0;">
-      <h2 style="font-family:var(--fns);font-size:24px;color:var(--t1);margin-bottom:4px;">Ajustes</h2>
-      <p style="font-size:13px;color:var(--t2);margin-bottom:14px;">Personaliza UNIVOZ para tu comodidad.</p>
-      <div style="font-size:11px;font-weight:700;color:var(--t3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:8px;">Perfil activo</div>
-      <div class="wcard" style="margin-bottom:14px;">
-        <div class="mode-grid">
-          <div class="mode-opt m-blind" style="cursor:pointer;" onclick="go(4)"><span class="mo-ic">👁️</span><div class="mo-tx">Ciego</div></div>
-          <div class="mode-opt" style="cursor:pointer;" onclick="go(7)"><span class="mo-ic">🦻</span><div class="mo-tx" style="color:var(--t3);">Sordo</div></div>
-          <div class="mode-opt" style="cursor:pointer;" onclick="go(12)"><span class="mo-ic">🤐</span><div class="mo-tx" style="color:var(--t3);">Mudo</div></div>
-        </div>
-      </div>
-      <div style="font-size:11px;font-weight:700;color:var(--t3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:8px;">Accesibilidad</div>
-      <div class="wcard" style="margin-bottom:14px;">
-        <div class="set-row"><div><div class="set-lbl">Lector de pantalla</div><div class="set-sub">Narra todas las acciones</div></div><div class="tog"></div></div>
-        <div class="set-row"><div><div class="set-lbl">Alto contraste</div><div class="set-sub">Relación mínima 4.5:1</div></div><div class="tog off"></div></div>
-        <div class="set-row"><div><div class="set-lbl">Vibración de confirmación</div><div class="set-sub">Respuesta háptica</div></div><div class="tog"></div></div>
-        <div class="set-row"><div><div class="set-lbl">Flash en notificaciones</div><div class="set-sub">Para usuarios sordos</div></div><div class="tog"></div></div>
-      </div>
-      <button style="width:100%;padding:12px;background:transparent;color:#DC2626;border:1.5px solid rgba(220,38,38,.25);border-radius:var(--pill);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--fn);margin-bottom:24px;" onclick="go(0)">Cerrar sesión</button>
-    </div>
-    <div class="bnav">
-      <div class="bni" onclick="go(5)"><span class="mi">home</span><span class="lbl">Inicio</span></div>
-      <div class="bni"><span class="mi">history</span><span class="lbl">Historial</span></div>
-      <div class="bni on"><span class="mi fill">settings</span><span class="lbl">Ajustes</span></div>
-      <div class="bni"><span class="mi">person</span><span class="lbl">Perfil</span></div>
-    </div>
+
+  <div class="screen" id="sc15" style="background:var(--bg);">
+  <div style="background:var(--surf);border-bottom:1.5px solid var(--blind-br);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+    <div class="back-btn" onclick="settingsBack()"><span class="mi sm" style="color:var(--blind);">arrow_back</span></div>
+    <div style="text-align:center;"><div style="font-size:13px;font-weight:700;color:var(--blind);">Ajustes · Modo Ciego</div><div style="font-size:10px;color:var(--t3);">Configuración visual y por voz</div></div>
+    <div style="width:36px;"></div>
   </div>
-
-</div><!-- /phone -->
-
-<!-- Controles de demo (solo prototipo) -->
-<div style="display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;justify-content:center;">
-  <button onclick="prev()" style="padding:8px 18px;border-radius:var(--pill);background:rgba(255,255,255,.8);border:1.5px solid rgba(92,66,212,.18);color:var(--t2);font-size:12px;font-weight:500;font-family:var(--fn);cursor:pointer;">← Anterior</button>
-  <button onclick="autoFlow()" style="padding:8px 18px;border-radius:var(--pill);background:var(--pri-c);border:none;color:#fff;font-size:12px;font-weight:500;font-family:var(--fn);cursor:pointer;box-shadow:0 3px 12px var(--pri-sh);">▶ Demo auto completa</button>
-  <button onclick="next()" style="padding:8px 18px;border-radius:var(--pill);background:rgba(255,255,255,.8);border:1.5px solid rgba(92,66,212,.18);color:var(--t2);font-size:12px;font-weight:500;font-family:var(--fn);cursor:pointer;">Siguiente →</button>
-</div>
-
-<!-- Banner de instalación PWA (aparece solo en móvil cuando no está instalada) -->
-<div id="pwaInstallBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;
-  background:#5C42D4;color:#fff;padding:12px 16px;font-family:'DM Sans',sans-serif;
-  box-shadow:0 -4px 20px rgba(92,66,212,.4);animation:slide-up .3s ease;">
-  <div style="display:flex;align-items:center;gap:12px;max-width:420px;margin:0 auto;">
-    <img src="icons/icon-192.png" style="width:40px;height:40px;border-radius:10px;" alt="UNIVOZ"/>
-    <div style="flex:1;">
-      <div style="font-size:13px;font-weight:700;">Instalar UNIVOZ</div>
-      <div style="font-size:11px;opacity:.8;">Úsala sin internet desde tu pantalla de inicio</div>
+  <div class="scroll-content" style="padding:12px 16px;gap:12px;display:flex;flex-direction:column;">
+    <div class="wcard">
+      <div class="set-row"><div><div class="set-lbl">Lector de pantalla</div><div class="set-sub">Narra todas las acciones</div></div><div class="tog"></div></div>
+      <div class="set-row"><div><div class="set-lbl">Velocidad de lectura</div><div class="set-sub">Normal</div></div><span style="font-size:12px;font-weight:600;color:var(--blind);">1.0x</span></div>
+      <div class="set-row"><div><div class="set-lbl">Alto contraste</div><div class="set-sub">Mejora la legibilidad</div></div><div class="tog off"></div></div>
+      <div class="set-row"><div><div class="set-lbl">Respuesta háptica</div><div class="set-sub">Vibración en acciones clave</div></div><div class="tog"></div></div>
     </div>
-    <button id="pwaInstallBtn" style="background:#fff;color:#5C42D4;border:none;border-radius:20px;
-      padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">
-      Instalar
-    </button>
-    <button onclick="document.getElementById('pwaInstallBanner').style.display='none'"
-      style="background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;
-      border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-      ×
-    </button>
+    <button style="width:100%;padding:14px;background:transparent;color:#DC2626;border:1.5px solid rgba(220,38,38,0.25);border-radius:var(--pill);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--fn);" onclick="logout()">Cerrar sesión</button>
+  </div>
+  <div class="bnav">
+    <div class="bni" onclick="goHome()"><span class="mi">home</span><span class="lbl">Inicio</span></div>
+    <div class="bni" onclick="go(6)"><span class="mi">mic</span><span class="lbl">Dictar</span></div>
+    <div class="bni"><span class="mi">history</span><span class="lbl">Historial</span></div>
+    <div class="bni on"><span class="mi fill">settings</span><span class="lbl">Ajustes</span></div>
   </div>
 </div>
 
-<!-- Lógica de la app -->
-<script src="app.js"></script>
+<div class="screen" id="sc16" style="background:var(--bg);">
+  <div style="background:var(--surf);border-bottom:1.5px solid var(--deaf-br);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+    <div class="back-btn" onclick="settingsBack()"><span class="mi sm" style="color:var(--deaf);">arrow_back</span></div>
+    <div style="text-align:center;"><div style="font-size:13px;font-weight:700;color:var(--deaf);">Ajustes · Modo Sordo</div><div style="font-size:10px;color:var(--t3);">Subtítulos y lenguaje de señas</div></div>
+    <div style="width:36px;"></div>
+  </div>
+  <div class="scroll-content" style="padding:12px 16px;gap:12px;display:flex;flex-direction:column;">
+    <div class="wcard">
+      <div class="set-row"><div><div class="set-lbl">Tamaño de subtítulos</div><div class="set-sub">Texto en tiempo real</div></div><span style="font-size:12px;font-weight:700;color:var(--deaf);">20px</span></div>
+      <div class="set-row"><div><div class="set-lbl">Flash en notificaciones</div><div class="set-sub">Alerta visual</div></div><div class="tog"></div></div>
+      <div class="set-row"><div><div class="set-lbl">Avatar LSM 3D</div><div class="set-sub">Traducción de voz a señas</div></div><div class="tog"></div></div>
+      <div class="set-row"><div><div class="set-lbl">Idioma de subtítulos</div><div class="set-sub">Preferencia principal</div></div><span style="font-size:12px;font-weight:600;color:var(--deaf);">Español MX</span></div>
+    </div>
+    <button style="width:100%;padding:14px;background:transparent;color:#DC2626;border:1.5px solid rgba(220,38,38,0.25);border-radius:var(--pill);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--fn);" onclick="logout()">Cerrar sesión</button>
+  </div>
+  <div class="bnav">
+    <div class="bni" onclick="goHome()"><span class="mi">home</span><span class="lbl">Inicio</span></div>
+    <div class="bni" onclick="go(9)"><span class="mi">closed_caption</span><span class="lbl">Subtítulos</span></div>
+    <div class="bni" onclick="go(10)"><span class="mi">sign_language</span><span class="lbl">Señas</span></div>
+    <div class="bni on"><span class="mi fill">settings</span><span class="lbl">Ajustes</span></div>
+  </div>
+</div>
 
-<!-- Registro del Service Worker (PWA offline) -->
+<div class="screen" id="sc17" style="background:var(--bg);">
+  <div style="background:var(--surf);border-bottom:1.5px solid var(--mute-br);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+    <div class="back-btn" onclick="settingsBack()"><span class="mi sm" style="color:var(--mute-c);">arrow_back</span></div>
+    <div style="text-align:center;"><div style="font-size:13px;font-weight:700;color:var(--mute-c);">Ajustes · Modo Mudo</div><div style="font-size:10px;color:var(--t3);">Texto a voz y frases rápidas</div></div>
+    <div style="width:36px;"></div>
+  </div>
+  <div class="scroll-content" style="padding:12px 16px;gap:12px;display:flex;flex-direction:column;">
+    <div class="wcard">
+      <div class="set-row"><div><div class="set-lbl">Voz del sintetizador</div><div class="set-sub">Salida principal</div></div><span style="font-size:12px;font-weight:600;color:var(--mute-c);">Mujer ES</span></div>
+      <div class="set-row"><div><div class="set-lbl">Velocidad de voz</div><div class="set-sub">Ritmo de reproducción</div></div><span style="font-size:12px;font-weight:700;color:var(--mute-c);">Normal</span></div>
+      <div class="set-row"><div><div class="set-lbl">Frases frecuentes</div><div class="set-sub">Mostrar sugerencias</div></div><div class="tog"></div></div>
+      <div class="set-row"><div><div class="set-lbl">Guardar historial</div><div class="set-sub">Guardar localmente</div></div><div class="tog off"></div></div>
+    </div>
+    <button style="width:100%;padding:14px;background:transparent;color:#DC2626;border:1.5px solid rgba(220,38,38,0.25);border-radius:var(--pill);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--fn);" onclick="logout()">Cerrar sesión</button>
+  </div>
+  <div class="bnav">
+    <div class="bni" onclick="goHome()"><span class="mi">home</span><span class="lbl">Inicio</span></div>
+    <div class="bni" onclick="go(14)"><span class="mi">keyboard</span><span class="lbl">Escribir</span></div>
+    <div class="bni"><span class="mi">history</span><span class="lbl">Historial</span></div>
+    <div class="bni on"><span class="mi fill">settings</span><span class="lbl">Ajustes</span></div>
+  </div>
+</div>
+</div>
+
+
+<script src="src/scripts/navigation.js"></script>
+<script src="src/scripts/app.js"></script>
+
+
 <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-      navigator.serviceWorker.register('./sw.js')
-        .then(function(reg) { console.log('UNIVOZ SW registrado:', reg.scope); })
-        .catch(function(err) { console.warn('SW error:', err); });
-    });
-  }
-
-  // Banner de instalación: captura el evento beforeinstallprompt
-  var deferredPrompt = null;
-  window.addEventListener('beforeinstallprompt', function(e) {
-    e.preventDefault();
-    deferredPrompt = e;
-    var banner = document.getElementById('pwaInstallBanner');
-    if (!banner) return;
-    if (window.matchMedia('(display-mode: standalone)').matches) return;
-    banner.style.display = 'block';
+// Registrar Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('SW registrado:', reg.scope))
+      .catch(err => console.log('SW error:', err));
   });
+}
 
-  var installBtn = document.getElementById('pwaInstallBtn');
-  if (installBtn) {
-    installBtn.addEventListener('click', function() {
-      if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then(function(result) {
-        console.log('Install outcome:', result.outcome);
-        deferredPrompt = null;
-        var banner = document.getElementById('pwaInstallBanner');
-        if (banner) banner.style.display = 'none';
-      });
-    });
-  }
+// Ocultar loader cuando la app esté lista
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const loader = document.getElementById('appLoader');
+    if (loader) {
+      loader.classList.add('hidden');
+    }
+  }, 1500);
+});
 
-  // Abrir pantalla específica si viene en la URL (?start=N)
-  var startParam = parseInt(new URLSearchParams(window.location.search).get('start'));
-  if (!isNaN(startParam) && startParam >= 0 && startParam < 16) {
-    document.addEventListener('DOMContentLoaded', function() { go(startParam); });
+// Actualizar hora en status bar
+function updateStatusTime() {
+  const timeEl = document.getElementById('statusTime');
+  if (timeEl) {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    timeEl.textContent = `${hours}:${minutes}`;
   }
+}
+updateStatusTime();
+setInterval(updateStatusTime, 1000);
+
+// Prevenir comportamientos nativos no deseados
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('gesturechange', e => e.preventDefault());
+document.addEventListener('dblclick', e => {
+  if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+// Manejo de deep links
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const startScreen = params.get('start');
+  if (startScreen !== null && !isNaN(startScreen)) {
+    const screenNum = parseInt(startScreen);
+    if (screenNum >= 0 && screenNum < 18) {
+      setTimeout(() => go(screenNum), 1600);
+    }
+  }
+});
 </script>
 </body>
 </html>
