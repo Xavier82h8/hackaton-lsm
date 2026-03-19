@@ -647,6 +647,9 @@ input, textarea, .editable {
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
+        <button onclick="toggleVoiceCommands()" style="background:var(--blind);border:none;border-radius:var(--pill);padding:6px 10px;display:flex;align-items:center;gap:5px;cursor:pointer;" title="Activar comandos de voz">
+          <span class="mi fill" style="color:#fff;font-size:18px;">mic</span>
+        </button>
         <div style="background:var(--blind-l);border:1.5px solid var(--blind-br);border-radius:var(--pill);padding:3px 9px;font-size:10px;font-weight:700;color:var(--blind);display:flex;align-items:center;gap:4px;">
           <span style="width:6px;height:6px;border-radius:50%;background:#10B981;display:inline-block;animation:blink 2s ease-in-out infinite;"></span>Lector ON
         </div>
@@ -695,7 +698,12 @@ input, textarea, .editable {
         <div style="font-size:13px;font-weight:700;color:var(--blind);">Modo Ciego</div>
         <div style="font-size:10px;color:var(--t3);">Dictado de voz</div>
       </div>
-      <div class="back-btn"><span class="mi sm" style="color:var(--blind);">settings</span></div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button onclick="toggleVoiceCommands()" style="background:var(--blind);border:none;border-radius:var(--pill);padding:6px 8px;display:flex;align-items:center;justify-content:center;cursor:pointer;" title="Comandos de voz">
+          <span class="mi fill" style="color:#fff;font-size:18px;">mic</span>
+        </button>
+        <div class="back-btn" onclick="openSettings()"><span class="mi sm" style="color:var(--blind);">settings</span></div>
+      </div>
     </div>
     
     <div class="mode-header blind-h">
@@ -1153,6 +1161,7 @@ input, textarea, .editable {
 
 <script src="src/scripts/navigation.js"></script>
 <script src="src/scripts/app.js"></script>
+<script src="src/scripts/voice-commands.js"></script>
 
 
 <script>
@@ -1171,6 +1180,11 @@ window.addEventListener('load', () => {
     const loader = document.getElementById('appLoader');
     if (loader) {
       loader.classList.add('hidden');
+    }
+    
+    // Inicializar sistema de voz para usuarios ciegos
+    if (typeof initVoiceSystem === 'function') {
+      initVoiceSystem();
     }
   }, 1500);
 });
