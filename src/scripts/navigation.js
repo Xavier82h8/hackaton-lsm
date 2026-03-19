@@ -1,4 +1,4 @@
-﻿window.NAV_CONFIG = {
+window.NAV_CONFIG = {
   TOTAL_SCREENS: 20,
   PROFILE_SCREENS: {
     blind: [4, 5, 6],
@@ -12,30 +12,37 @@
 };
 
 /* ============================================================
-   NAVEGACIÓN ENTRE PANTALLAS
+   NAVEGACION ENTRE PANTALLAS
    ============================================================ */
 const NAV = window.NAV_CONFIG || {};
-const TOTAL_SCREENS = NAV.TOTAL_SCREENS || 18;
+const TOTAL_SCREENS = NAV.TOTAL_SCREENS || 20;
 const PROFILE_SCREENS = {
-  blind: new Set(NAV.PROFILE_SCREENS.blind || [4, 5, 6]),
-  deaf: new Set(NAV.PROFILE_SCREENS.deaf || [7, 8, 9, 10, 11]),
-  mute: new Set(NAV.PROFILE_SCREENS.mute || [12, 13, 14]),
+  blind: new Set(NAV.PROFILE_SCREENS?.blind || [4, 5, 6]),
+  deaf: new Set(NAV.PROFILE_SCREENS?.deaf || [7, 8, 9, 10, 11]),
+  mute: new Set(NAV.PROFILE_SCREENS?.mute || [12, 13, 14]),
+  deafblind: new Set(NAV.PROFILE_SCREENS?.deafblind || [18, 19]),
 };
-const PROFILE_HOME = NAV.PROFILE_HOME || { blind: 5, deaf: 8, mute: 13 };
-const PROFILE_CONFIG = NAV.PROFILE_CONFIG || { blind: 4, deaf: 7, mute: 12 };
-const PROFILE_SETTINGS = NAV.PROFILE_SETTINGS || { blind: 15, deaf: 16, mute: 17 };
+const PROFILE_HOME = NAV.PROFILE_HOME || { blind: 5, deaf: 8, mute: 13, deafblind: 19 };
+const PROFILE_CONFIG = NAV.PROFILE_CONFIG || { blind: 4, deaf: 7, mute: 12, deafblind: 18 };
+const PROFILE_SETTINGS = NAV.PROFILE_SETTINGS || { blind: 15, deaf: 16, mute: 17, deafblind: 15 };
+const runtimeState = window.__univozRuntime = window.__univozRuntime || {
+  detectInt: null,
+  detectedProfile: null,
+  cntInt: null,
+};
 
 const appState = {
   currentScreen: 0,
+  previousScreen: null,
   activeProfile: null,
+  skipSessionSave: false,
 };
-
-let cntInt, detectInt;
 
 function profileByScreen(screen) {
   if (PROFILE_SCREENS.blind.has(screen)) return 'blind';
   if (PROFILE_SCREENS.deaf.has(screen)) return 'deaf';
   if (PROFILE_SCREENS.mute.has(screen)) return 'mute';
+  if (PROFILE_SCREENS.deafblind.has(screen)) return 'deafblind';
   return null;
 }
 
@@ -45,122 +52,152 @@ function setActiveProfile(profile) {
 }
 
 function go(n) {
-  // Si vamos a la pantalla de selección de perfil (sc1), limpiar perfil activo
+  if (!Number.isInteger(n) || n < 0 || n >= TOTAL_SCREENS) return;
+
   if (n === 1) {
     appState.activeProfile = null;
   }
-  
-  // Evitar navegación redundante
-  if (n === appState.currentScreen) return;
-  
-  // Si vamos a una pantalla de configuración de perfil (sc4, sc7, sc12),
-  // establecer el perfil correspondiente
+
+  if (n === appState.currentScreen) {
+    if (n === 2 && typeof startDetect === 'function') {
+      startDetect();
+    } else if (n === 3 && typeof startCountdown === 'function') {
+      startCountdown();
+    }
+    return;
+  }
+
   if (n === 4) {
     appState.activeProfile = 'blind';
   } else if (n === 7) {
     appState.activeProfile = 'deaf';
   } else if (n === 12) {
     appState.activeProfile = 'mute';
+  } else if (n === 18) {
+    appState.activeProfile = 'deafblind';
   }
-  
-  // Verificar si estamos yendo a una pantalla de otro perfil
+
   const targetProfile = profileByScreen(n);
   if (targetProfile && appState.activeProfile && appState.activeProfile !== targetProfile) {
-    // Si intentamos ir a una pantalla de otro perfil, ir al home del perfil actual
     n = PROFILE_HOME[appState.activeProfile];
   }
-  
-  // Establecer perfil según la pantalla si no está establecido
+
   if (targetProfile && !appState.activeProfile) {
     setActiveProfile(targetProfile);
   }
-  
-  // Ocultar todas las pantallas
+
   for (let i = 0; i < TOTAL_SCREENS; i++) {
-    const sc = document.getElementById('sc' + i);
-    if (sc) sc.classList.remove('on');
+    const screen = document.getElementById(`sc${i}`);
+    if (screen) screen.classList.remove('on');
   }
-  
-  // Mostrar pantalla actual
+
   requestAnimationFrame(() => {
-    const targetSc = document.getElementById('sc' + n);
-    if (targetSc) {
-      targetSc.classList.add('on');
+    const targetScreen = document.getElementById(`sc${n}`);
+    if (targetScreen) {
+      targetScreen.classList.add('on');
     }
   });
-  
+
+  appState.previousScreen = appState.currentScreen;
   appState.currentScreen = n;
 
-  // Guardar sesión
-  if (typeof saveSession === 'function') {
-    saveSession(n);
+  if (n !== 2 && runtimeState.detectInt) {
+    clearInterval(runtimeState.detectInt);
+    runtimeState.detectInt = null;
+    runtimeState.detectedProfile = null;
   }
 
-  // Anunciar cambio de pantalla si los comandos de voz están activos
+  if (n !== 3 && runtimeState.cntInt) {
+    clearInterval(runtimeState.cntInt);
+    runtimeState.cntInt = null;
+  }
+
+  if (!appState.skipSessionSave && typeof saveSession === 'function') {
+    saveSession(n);
+  }
+  appState.skipSessionSave = false;
+
   if (typeof announceNavigation === 'function') {
     announceNavigation(n);
   }
 
-  // Inicializaciones específicas por pantalla
-  if (n === 1) {
-    // Iniciar temporizador en pantalla de selección de perfil
-    if (typeof startProfileCountdown === 'function') {
-      setTimeout(() => startProfileCountdown(), 500);
-    }
+  if (n === 1 && typeof startProfileCountdown === 'function') {
+    setTimeout(() => startProfileCountdown(), 500);
   }
-  if (n === 2) startDetect();
-  if (n === 3) startCountdown();
+  if (n === 2 && typeof startDetect === 'function') startDetect();
+  if (n === 3 && typeof startCountdown === 'function') startCountdown();
   if (n === 6 && typeof initBlindWaveform === 'function') initBlindWaveform();
-  if (n === 10) {
-    if (typeof initLSMGrid === 'function') initLSMGrid();
-  }
+  if (n === 10 && typeof initLSMGrid === 'function') initLSMGrid();
 
-  // Resetear scroll
-  const scrollContent = document.querySelector('.scroll-content');
+  const scrollContent = document.querySelector(`#sc${n} .scroll-content`);
   if (scrollContent) {
-    setTimeout(() => scrollContent.scrollTop = 0, 50);
+    setTimeout(() => {
+      scrollContent.scrollTop = 0;
+    }, 50);
   }
 }
 
 function openSettings() {
   if (appState.activeProfile) {
     go(PROFILE_SETTINGS[appState.activeProfile]);
-  } else {
-    go(PROFILE_SETTINGS.blind);
+    return;
   }
+  go(PROFILE_SETTINGS.blind);
 }
 
 function settingsBack() {
   if (appState.activeProfile) {
     go(PROFILE_HOME[appState.activeProfile]);
-  } else {
-    go(0);
+    return;
   }
+  go(0);
 }
 
 function goHome() {
   if (appState.activeProfile) {
     go(PROFILE_HOME[appState.activeProfile]);
-  } else {
-    go(0);
+    return;
   }
+  go(0);
 }
 
 function goProfileConfig() {
   if (appState.activeProfile) {
     go(PROFILE_CONFIG[appState.activeProfile]);
-  } else {
-    go(1);
+    return;
   }
+  go(1);
 }
 
-function logout() {
-  appState.activeProfile = null;
+function goBack() {
+  if (Number.isInteger(appState.previousScreen) && appState.previousScreen >= 0) {
+    const previous = appState.previousScreen;
+    appState.previousScreen = null;
+    go(previous);
+    return;
+  }
+
+  if (appState.activeProfile) {
+    go(PROFILE_HOME[appState.activeProfile]);
+    return;
+  }
+
   go(0);
 }
 
-// Exportar funciones al scope global
+function logout() {
+  appState.skipSessionSave = true;
+  appState.activeProfile = null;
+  appState.previousScreen = null;
+  if (typeof clearSession === 'function') {
+    clearSession();
+  }
+  go(0);
+}
+
+window.appState = appState;
 window.go = go;
+window.goBack = goBack;
 window.openSettings = openSettings;
 window.settingsBack = settingsBack;
 window.goHome = goHome;

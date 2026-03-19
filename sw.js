@@ -6,7 +6,7 @@ Estrategia:
 - Assets estaticos: Cache First
 */
 
-const CACHE_NAME = 'univoz-v1.0.5';
+const CACHE_NAME = 'univoz-v1.0.6';
 
 const PRECACHE = [
   './',
@@ -14,6 +14,7 @@ const PRECACHE = [
   './src/styles/app.css',
   './src/scripts/navigation.js',
   './src/scripts/app.js',
+  './src/scripts/voice-commands.js',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -37,6 +38,12 @@ self.addEventListener('activate', event => {
       .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
+});
+
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', event => {

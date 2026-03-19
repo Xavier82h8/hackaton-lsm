@@ -4,10 +4,12 @@
    ============================================================ */
 
 /* ============================================================
-   0. EXPORTAR FUNCIONES GLOBALES INMEDIATAS
+   0. IMPLEMENTACIÓN DE SELECTPROFILE
    ============================================================ */
-// Implementación real de selectProfile (se llama después de que carga app.js)
-window._selectProfileImpl = function(profile) {
+// Implementación real que se usa cuando app.js ha cargado
+function _selectProfileImpl(profile) {
+  console.log('_selectProfileImpl ejecutando:', profile);
+  
   if (typeof stopProfileCountdown === 'function') {
     stopProfileCountdown();
   }
@@ -16,7 +18,7 @@ window._selectProfileImpl = function(profile) {
     'blind': { screen: 4 },
     'deaf': { screen: 7 },
     'mute': { screen: 12 },
-    'deafblind': { screen: 18 }  // Pantalla específica para sordomudo
+    'deafblind': { screen: 18 }
   };
 
   const config = profileMap[profile];
@@ -42,74 +44,178 @@ window._selectProfileImpl = function(profile) {
       announce('Perfil sordomudo seleccionado. Navegando a configuración de señas LSM y texto.');
     }
   }
-};
-
-// Actualizar el wrapper para que use la implementación real
-if (typeof window.selectProfile === 'function') {
-  window.selectProfile = function(profile) {
-    console.log('selectProfile ejecutando:', profile);
-    window._selectProfileImpl(profile);
-  };
 }
+
+function selectProfile(profile) {
+  console.log('selectProfile llamado:', profile);
+  _selectProfileImpl(profile);
+}
+
+window.selectProfile = selectProfile;
 
 /* ============================================================
    1. GESTIÓN DE SESIÓN Y TEMPORIZADOR
    ============================================================ */
+const appRuntimeState = window.__univozRuntime = window.__univozRuntime || {
+  detectInt: null,
+  detectedProfile: null,
+  cntInt: null,
+};
+const SESSION_KEYS = ['univoz_lastScreen', 'univoz_lastProfile', 'univoz_lastVisit'];
+const SCREEN_NAMES = {
+  0: 'Inicio',
+  1: 'Perfil',
+  2: 'IA',
+  3: 'Confirmación',
+  4: 'Config Ciego',
+  5: 'Inicio Ciego',
+  6: 'Dictado',
+  7: 'Config Sordo',
+  8: 'Inicio Sordo',
+  9: 'Subtítulos',
+  10: 'LSM',
+  11: 'Transcripción',
+  12: 'Config Mudo',
+  13: 'Inicio Mudo',
+  14: 'Texto a Voz',
+  15: 'Ajustes Ciego',
+  16: 'Ajustes Sordo',
+  17: 'Ajustes Mudo',
+  18: 'Config Sordomudo',
+  19: 'Inicio Sordomudo',
+};
 let profileCountdownInterval;
 let PROFILE_COUNTDOWN = 5;
 
+function getStoredSession() {
+  const rawScreen = localStorage.getItem('univoz_lastScreen');
+  const profile = localStorage.getItem('univoz_lastProfile');
+  const lastVisit = localStorage.getItem('univoz_lastVisit');
+
+  if (rawScreen === null || !profile) return null;
+
+  const screen = parseInt(rawScreen, 10);
+  if (!Number.isInteger(screen)) return null;
+
+  return { screen, profile, lastVisit };
+}
+
+function isKnownProfile(profile) {
+  return ['blind', 'deaf', 'mute', 'deafblind'].includes(profile);
+}
+
+function isScreenAllowedForProfile(screen, profile) {
+  const nav = window.NAV_CONFIG || {};
+  const profileScreens = nav.PROFILE_SCREENS?.[profile] || [];
+  const profileHome = nav.PROFILE_HOME?.[profile];
+  const profileConfig = nav.PROFILE_CONFIG?.[profile];
+  const profileSettings = nav.PROFILE_SETTINGS?.[profile];
+
+  return [
+    ...profileScreens,
+    profileHome,
+    profileConfig,
+    profileSettings,
+  ].includes(screen);
+}
+
+function clearSession() {
+  SESSION_KEYS.forEach(key => localStorage.removeItem(key));
+
+  const resumeBtn = document.getElementById('resumeBtn');
+  const resumeLabel = document.getElementById('resumeLabel');
+  if (resumeBtn) resumeBtn.style.display = 'none';
+  if (resumeLabel) resumeLabel.textContent = '';
+}
+
 // Guardar sesión actual
 function saveSession(screenNumber) {
-  if (!screenNumber) screenNumber = appState ? appState.currentScreen : 0;
-  const profile = appState ? appState.activeProfile : null;
-  
-  localStorage.setItem('univoz_lastScreen', screenNumber);
+  if (screenNumber == null) screenNumber = appState ? appState.currentScreen : 0;
+
+  let profile = appState ? appState.activeProfile : null;
+  if (!profile && typeof profileByScreen === 'function') {
+    profile = profileByScreen(screenNumber);
+  }
+
+  localStorage.setItem('univoz_lastScreen', String(screenNumber));
   localStorage.setItem('univoz_lastProfile', profile || 'unknown');
   localStorage.setItem('univoz_lastVisit', new Date().toISOString());
 }
 
 // Reanudar sesión
 function resumeSession() {
-  const lastScreen = localStorage.getItem('univoz_lastScreen');
-  const lastProfile = localStorage.getItem('univoz_lastProfile');
-  
-  if (lastScreen && lastProfile) {
-    if (typeof appState !== 'undefined') {
-      appState.activeProfile = lastProfile;
-    }
-    const screen = parseInt(lastScreen);
-    go(screen);
-    
-    if (typeof announce === 'function') {
-      announce('Sesión reanudada. Perfil: ' + lastProfile);
-    }
+  const session = getStoredSession();
+  if (!session) {
+    clearSession();
+    return;
+  }
+
+  const { screen, profile } = session;
+  if (!isKnownProfile(profile) || !isScreenAllowedForProfile(screen, profile)) {
+    clearSession();
+    go(1);
+    return;
+  }
+
+  if (typeof appState !== 'undefined') {
+    appState.activeProfile = profile;
+  }
+  go(screen);
+
+  if (typeof announce === 'function') {
+    announce('Sesión reanudada. Perfil: ' + profile);
   }
 }
 
 // Verificar si hay sesión guardada
 function checkForSavedSession() {
-  const lastScreen = localStorage.getItem('univoz_lastScreen');
   const resumeBtn = document.getElementById('resumeBtn');
   const resumeLabel = document.getElementById('resumeLabel');
-  
-  if (lastScreen && resumeBtn && resumeLabel) {
-    const lastVisit = localStorage.getItem('univoz_lastVisit');
-    if (lastVisit) {
-      const date = new Date(lastVisit);
-      const now = new Date();
-      const hoursAgo = Math.floor((now - date) / (1000 * 60 * 60));
-      
-      const screenNames = {
-        0: 'Inicio', 1: 'Perfil', 2: 'IA', 3: 'Confirmación',
-        4: 'Config Ciego', 5: 'Inicio Ciego', 6: 'Dictado',
-        7: 'Config Sordo', 8: 'Inicio Sordo', 9: 'Subtítulos',
-        10: 'LSM', 11: 'Transcripción', 12: 'Config Mudo',
-        13: 'Inicio Mudo', 14: 'Texto a Voz'
-      };
-      
-      const screenName = screenNames[lastScreen] || 'Pantalla ' + lastScreen;
-      resumeLabel.textContent = `Hace ${hoursAgo}h · ${screenName}`;
-      resumeBtn.style.display = 'flex';
+  const session = getStoredSession();
+
+  if (!resumeBtn || !resumeLabel) return;
+
+  if (!session || !isKnownProfile(session.profile) || !isScreenAllowedForProfile(session.screen, session.profile)) {
+    clearSession();
+    return;
+  }
+
+  const date = session.lastVisit ? new Date(session.lastVisit) : null;
+  const now = new Date();
+  const hoursAgo = date && !Number.isNaN(date.getTime())
+    ? Math.max(0, Math.floor((now - date) / (1000 * 60 * 60)))
+    : 0;
+
+  resumeLabel.textContent = `Hace ${hoursAgo}h · ${SCREEN_NAMES[session.screen] || 'Pantalla ' + session.screen}`;
+  resumeBtn.style.display = 'flex';
+}
+
+window.clearSession = clearSession;
+
+function startProfileDetection() {
+  if (typeof stopProfileCountdown === 'function') {
+    stopProfileCountdown();
+  }
+
+  if (appRuntimeState.detectInt) {
+    clearInterval(appRuntimeState.detectInt);
+    appRuntimeState.detectInt = null;
+  }
+
+  if (appRuntimeState.cntInt) {
+    clearInterval(appRuntimeState.cntInt);
+    appRuntimeState.cntInt = null;
+  }
+
+  if (typeof appState !== 'undefined') {
+    appState.activeProfile = null;
+  }
+
+  if (typeof go === 'function') {
+    if (appState && appState.currentScreen === 2) {
+      startDetect();
+    } else {
+      go(2);
     }
   }
 }
@@ -167,78 +273,215 @@ function selP(t) {
 /* ============================================================
    3. DETECCIÓN IA (pantalla sc2)
    ============================================================ */
-function startDetect() {
-  clearInterval(detectInt);
-  const fill   = document.getElementById('ls-fill');
-  const sec    = document.getElementById('ls-sec');
-  const sec2   = document.getElementById('ls-sec2');
-  const status = document.getElementById('ls-status');
-  const aiRes  = document.getElementById('ai-res');
-  const cbarF  = document.querySelector('.cbar-f');
 
-  if (fill)  fill.style.width = '0%';
+function startDetect() {
+  console.log('startDetect iniciado');
+  
+  // Limpiar detección anterior
+  if (appRuntimeState.detectInt) {
+    clearInterval(appRuntimeState.detectInt);
+    appRuntimeState.detectInt = null;
+  }
+  
+  // Obtener elementos
+  const fill = document.getElementById('ls-fill');
+  const sec = document.getElementById('ls-sec');
+  const sec2 = document.getElementById('ls-sec2');
+  const status = document.getElementById('ls-status');
+  const aiRes = document.getElementById('ai-res');
+  
+  // Resetear UI
+  if (fill) fill.style.width = '0%';
   if (aiRes) aiRes.style.opacity = '0';
+  
+  // Resetear señales
   ['sig-mic','sig-cam','sig-tap'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.classList.remove('hot','hot-blind');
+    if (el) {
+      el.classList.remove('hot','hot-blind','hot-deaf','hot-mute');
+      const mi = el.querySelector('.mi');
+      if (mi) mi.style.color = '';
+    }
   });
   ['sv-mic','sv-cam','sv-tap'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = '—';
   });
 
+  // Perfiles posibles
+  const profiles = [
+    {
+      id: 'blind',
+      name: 'Persona ciega',
+      confidence: Math.floor(Math.random() * 15) + 80,
+      interaction: 'Interacción por voz',
+      signals: {
+        mic: { value: 'Voz detectada', cls: 'hot' },
+        cam: { value: 'Sin uso', cls: 'hot-blind' },
+        tap: { value: 'Solo voz', cls: 'hot-blind' }
+      },
+      color: 'var(--blind)',
+      icon: 'visibility_off'
+    },
+    {
+      id: 'deaf',
+      name: 'Persona sorda',
+      confidence: Math.floor(Math.random() * 15) + 80,
+      interaction: 'Interacción visual',
+      signals: {
+        mic: { value: 'Sin uso', cls: 'hot-deaf' },
+        cam: { value: 'Movimiento detectado', cls: 'hot' },
+        tap: { value: 'Toques en pantalla', cls: 'hot-deaf' }
+      },
+      color: 'var(--deaf)',
+      icon: 'hearing_disabled'
+    },
+    {
+      id: 'mute',
+      name: 'Persona muda',
+      confidence: Math.floor(Math.random() * 15) + 80,
+      interaction: 'Interacción táctil',
+      signals: {
+        mic: { value: 'Sin uso', cls: 'hot-mute' },
+        cam: { value: 'Sin uso', cls: 'hot-mute' },
+        tap: { value: 'Texto ingresado', cls: 'hot' }
+      },
+      color: 'var(--mute-c)',
+      icon: 'voice_over_off'
+    }
+  ];
+
+  const selectedProfile = profiles[Math.floor(Math.random() * profiles.length)];
+  appRuntimeState.detectedProfile = selectedProfile;
+  
+  console.log('Perfil seleccionado:', selectedProfile.id);
+
   const phases = [
-    { t: 1.5, status: 'Analizando micrófono...', chip: 'sig-mic', val: 'sv-mic', value: 'Escuchando', cls: 'hot' },
-    { t: 3.0, status: 'Observando cámara...', chip: 'sig-cam', val: 'sv-cam', value: 'Observando', cls: 'hot-blind' },
-    { t: 4.5, status: 'Midiendo interacción...', chip: 'sig-tap', val: 'sv-tap', value: 'Detectando', cls: 'hot-blind' },
-    { t: 6.0, status: 'Procesando patrones IA...',    dot: 2 },
-    { t: 7.5, status: 'Perfil detectado → Ciego (87%)', dot: 3, result: true },
+    { t: 1.5, status: 'Analizando micrófono...', chip: 'sig-mic', val: 'sv-mic', ...selectedProfile.signals.mic },
+    { t: 3.0, status: 'Observando cámara...', chip: 'sig-cam', val: 'sv-cam', ...selectedProfile.signals.cam },
+    { t: 4.5, status: 'Midiendo interacción...', chip: 'sig-tap', val: 'sv-tap', ...selectedProfile.signals.tap },
+    { t: 6.0, status: 'Procesando patrones IA...', dot: 2 },
+    { t: 7.5, status: `Perfil detectado → ${selectedProfile.name} (${selectedProfile.confidence}%)`, dot: 3, result: true }
   ];
 
   let t = 0;
-  detectInt = setInterval(() => {
+  let detectionComplete = false;
+  
+  appRuntimeState.detectInt = setInterval(() => {
     t += 0.1;
+    
+    // Actualizar barra de progreso y tiempo
     const pct = Math.min((t / 8) * 100, 100);
-    if (fill)  fill.style.width = pct + '%';
-    if (sec)   sec.textContent  = Math.round(t) + 's';
-    if (sec2)  sec2.textContent = Math.round(t) + 's';
+    if (fill) fill.style.width = pct + '%';
+    if (sec) sec.textContent = Math.round(t) + 's';
+    if (sec2) sec2.textContent = Math.round(t) + 's';
+    
+    // Actualizar fases
     phases.forEach(ph => {
       if (Math.abs(t - ph.t) < 0.15) {
         if (status) status.textContent = ph.status;
+        
         if (ph.chip) {
           const chip = document.getElementById(ph.chip);
-          const vl   = document.getElementById(ph.val);
-          if (chip) chip.classList.add(ph.cls);
-          if (vl)   vl.textContent = ph.value;
+          const vl = document.getElementById(ph.val);
+          if (chip) {
+            chip.classList.add(ph.cls);
+            const mi = chip.querySelector('.mi');
+            if (mi) {
+              if (ph.cls.includes('blind')) mi.style.color = 'var(--blind)';
+              else if (ph.cls.includes('deaf')) mi.style.color = 'var(--deaf)';
+              else if (ph.cls.includes('mute')) mi.style.color = 'var(--mute-c)';
+              else mi.style.color = 'var(--pri-c)';
+            }
+          }
+          if (vl) vl.textContent = ph.value;
         }
-        if (ph.result && aiRes) {
+        
+        // Mostrar resultado
+        if (ph.result && aiRes && !detectionComplete) {
+          const aiAva = aiRes.querySelector('.ai-ava .mi');
+          const aiTitle = aiRes.querySelector('.ai-chip div:nth-child(2)');
+          const aiDesc = aiRes.querySelector('.ai-chip div:nth-child(3)');
+          const aiConf = aiRes.querySelector('.ai-chip div:last-child');
+          const cbar = aiRes.querySelector('.cbar-f');
+          
+          if (aiAva) {
+            aiAva.textContent = selectedProfile.icon;
+            aiAva.style.color = '#fff';
+          }
+          if (aiTitle) aiTitle.textContent = selectedProfile.name;
+          if (aiDesc) aiDesc.textContent = `Confianza ${selectedProfile.confidence}% · ${selectedProfile.interaction}`;
+          if (aiConf) {
+            aiConf.textContent = selectedProfile.confidence + '%';
+            aiConf.style.background = selectedProfile.color;
+          }
+          if (cbar) {
+            cbar.style.background = selectedProfile.color;
+            cbar.style.width = '0%';
+            setTimeout(() => cbar.style.width = selectedProfile.confidence + '%', 100);
+          }
+          
           aiRes.style.opacity = '1';
-          if (cbarF) { cbarF.style.width = '0%'; setTimeout(() => cbarF.style.width = '87%', 100); }
+          detectionComplete = true;
+          
+          console.log('Detección completada:', selectedProfile.name, selectedProfile.confidence + '%');
+          
+          if (typeof announce === 'function') {
+            announce(`Perfil detectado: ${selectedProfile.name} con ${selectedProfile.confidence} por ciento de confianza.`);
+          }
         }
       }
     });
-    if (t >= 8) { clearInterval(detectInt); setTimeout(() => go(3), 800); }
+    if (t >= 8) {
+      clearInterval(appRuntimeState.detectInt);
+      appRuntimeState.detectInt = null;
+      setTimeout(() => go(3), 400);
+    }
   }, 100);
+  
+  console.log('Intervalo de detección iniciado');
 }
 
 
 /* ============================================================
    4. CUENTA REGRESIVA (pantalla sc3)
    ============================================================ */
+
 function startCountdown() {
-  clearInterval(cntInt);
+  console.log('startCountdown iniciado');
+  
+  // Limpiar countdown anterior
+  if (appRuntimeState.cntInt) {
+    clearInterval(appRuntimeState.cntInt);
+    appRuntimeState.cntInt = null;
+  }
+  
   let t = 8;
-  const el  = document.getElementById('cnt-num');
+  const el = document.getElementById('cnt-num');
   const el2 = document.getElementById('cnt-num2');
+  
+  console.log('Elementos:', el, el2);
+  
   const update = () => {
-    if (el)  el.textContent  = t + 's';
+    if (el) el.textContent = t + 's';
     if (el2) el2.textContent = t + 's';
   };
+  
   update();
-  cntInt = setInterval(() => {
+  
+  appRuntimeState.cntInt = setInterval(() => {
     t--;
+    console.log('Countdown:', t);
     update();
-    if (t <= 0) { clearInterval(cntInt); go(4); }
+    
+    if (t <= 0) {
+      clearInterval(appRuntimeState.cntInt);
+      appRuntimeState.cntInt = null;
+      console.log('Countdown completado, navegando a sc4');
+      if (typeof selectProfile === 'function') {
+        selectProfile('blind');
+      }
+    }
   }, 1000);
 }
 
@@ -771,6 +1014,16 @@ async function toggleCamera() {
    10. INICIALIZACIÓN GENERAL
    ============================================================ */
 window.addEventListener('DOMContentLoaded', () => {
+  checkForSavedSession();
+  if (window.__pendingProfileSelection) {
+    const pendingProfile = window.__pendingProfileSelection;
+    window.__pendingProfileSelection = null;
+    selectProfile(pendingProfile);
+  }
+  if (window.__pendingDetectionStart) {
+    window.__pendingDetectionStart = false;
+    startProfileDetection();
+  }
   initBlindRecognition();
   initDeafRecognition();
   initTranscribeRecognition();
@@ -781,8 +1034,10 @@ window.selP = selP;
 window.selectProfile = selectProfile;
 window.resumeSession = resumeSession;
 window.checkForSavedSession = checkForSavedSession;
+window.clearSession = clearSession;
 window.startProfileCountdown = startProfileCountdown;
 window.stopProfileCountdown = stopProfileCountdown;
+window.startProfileDetection = startProfileDetection;
 window.saveSession = saveSession;
 window.startDetect = startDetect;
 window.showDeafblindPhrase = showDeafblindPhrase;
