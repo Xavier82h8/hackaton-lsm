@@ -1,0 +1,55 @@
+{
+  "name": "UNIVOZ — Accesibilidad Universal",
+  "short_name": "UNIVOZ",
+  "description": "App de accesibilidad para personas ciegas, sordas y mudas. Subtítulos en vivo, Señas LSM 3D, dictado y síntesis de voz.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#5C42D4",
+  "background_color": "#EEF0FF",
+  "lang": "es-MX",
+  "categories": ["accessibility", "education", "utilities"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "icons/screenshot-mobile.png",
+      "sizes": "320x640",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Modo Sordo — Señas LSM",
+      "short_name": "Señas",
+      "url": "./index.html?start=10",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Modo Ciego — Dictado",
+      "short_name": "Dictado",
+      "url": "./index.html?start=6",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Modo Mudo — Texto a Voz",
+      "short_name": "Hablar",
+      "url": "./index.html?start=14",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
