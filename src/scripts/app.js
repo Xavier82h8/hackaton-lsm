@@ -4,6 +4,42 @@
    ============================================================ */
 
 /* ============================================================
+   0. EXPORTAR FUNCIONES GLOBALES INMEDIATAS
+   ============================================================ */
+// Asegurar que las funciones estén disponibles antes de que el DOM cargue
+window.selectProfile = function(profile) {
+  if (typeof stopProfileCountdown === 'function') {
+    stopProfileCountdown();
+  }
+  
+  const profileMap = {
+    'blind': { screen: 4 },
+    'deaf': { screen: 7 },
+    'mute': { screen: 12 },
+    'deafblind': { screen: 4 }
+  };
+  
+  const config = profileMap[profile];
+  if (config) {
+    if (typeof selP === 'function') {
+      selP(profile === 'deafblind' ? 'db' : profile[0]);
+    }
+    
+    if (typeof appState !== 'undefined') {
+      appState.activeProfile = profile;
+    }
+    
+    if (typeof go === 'function') {
+      go(config.screen);
+    }
+    
+    if (typeof saveSession === 'function') {
+      saveSession(config.screen);
+    }
+  }
+};
+
+/* ============================================================
    1. GESTIÓN DE SESIÓN Y TEMPORIZADOR
    ============================================================ */
 let profileCountdownInterval;
@@ -112,30 +148,6 @@ function selP(t) {
   const map = { b: 'sel-blind', d: 'sel-deaf', m: 'sel-mute', db: 'sel-deafblind' };
   const el = document.getElementById('psel-' + t);
   if (el) el.classList.add(map[t]);
-}
-
-// Nueva función selectProfile
-function selectProfile(profile) {
-  stopProfileCountdown();
-  
-  const profileMap = {
-    'blind': { screen: 4, class: 'sel-blind' },
-    'deaf': { screen: 7, class: 'sel-deaf' },
-    'mute': { screen: 12, class: 'sel-mute' },
-    'deafblind': { screen: 4, class: 'sel-deafblind' }
-  };
-  
-  const config = profileMap[profile];
-  if (config) {
-    selP(profile === 'deafblind' ? 'db' : profile[0]);
-    
-    if (typeof appState !== 'undefined') {
-      appState.activeProfile = profile;
-    }
-    
-    go(config.screen);
-    saveSession(config.screen);
-  }
 }
 
 
