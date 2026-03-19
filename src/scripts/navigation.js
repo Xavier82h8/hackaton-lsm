@@ -90,6 +90,11 @@ function go(n) {
   
   appState.currentScreen = n;
 
+  // Anunciar cambio de pantalla si los comandos de voz están activos
+  if (typeof announceNavigation === 'function') {
+    announceNavigation(n);
+  }
+
   // Inicializaciones específicas por pantalla
   if (n === 2) startDetect();
   if (n === 3) startCountdown();

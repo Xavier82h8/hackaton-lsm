@@ -658,6 +658,20 @@ input, textarea, .editable {
     </div>
     
     <div class="scroll-content" style="padding:12px 16px;">
+      <div class="wcard" style="margin-bottom:12px;background:var(--blind-l);border-color:var(--blind-br);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <span class="mi fill" style="color:var(--blind);font-size:24px;">record_voice_over</span>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:700;color:var(--blind);">Asistente de Voz</div>
+            <div style="font-size:11px;color:var(--blind);">Di "activar voz" o toca el micrófono</div>
+          </div>
+        </div>
+        <button onclick="smartGuide()" style="width:100%;padding:10px;background:var(--blind);border:none;border-radius:var(--r-sm);font-size:12px;font-weight:600;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+          <span class="mi fill" style="color:#fff;font-size:18px;">help</span>
+          Escuchar guía de esta pantalla
+        </button>
+      </div>
+
       <div class="mode-card blind-card" onclick="go(6)" style="padding:16px 14px;margin-bottom:12px;">
         <div class="mode-ico" style="background:var(--blind-l);">
           <span class="mi fill" style="color:var(--blind);font-size:22px;">mic</span>

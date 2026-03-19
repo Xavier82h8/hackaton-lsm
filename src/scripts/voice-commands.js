@@ -1,11 +1,35 @@
 /* ============================================================
    COMANDOS DE VOZ PARA USUARIOS CIEGOS
-   Versión 1.0 - UNIVOZ
+   Versión 2.0 - UNIVOZ - Con guía de audio activa
    ============================================================ */
 
 let voiceCommandActive = false;
 let recognition = null;
 let isListening = false;
+let isFirstTime = true;
+let currentScreenName = '';
+
+// Mapa de nombres de pantallas para anuncios
+const SCREEN_NAMES = {
+  0: 'Pantalla de inicio',
+  1: 'Selección de perfil',
+  2: 'Detección con IA',
+  3: 'Confirmación de perfil',
+  4: 'Configuración de perfil ciego',
+  5: 'Inicio modo ciego',
+  6: 'Dictado de voz',
+  7: 'Configuración de perfil sordo',
+  8: 'Inicio modo sordo',
+  9: 'Subtítulos en vivo',
+  10: 'Señas LSM',
+  11: 'Transcripción',
+  12: 'Configuración de perfil mudo',
+  13: 'Inicio modo mudo',
+  14: 'Texto a voz',
+  15: 'Ajustes modo ciego',
+  16: 'Ajustes modo sordo',
+  17: 'Ajustes modo mudo',
+};
 
 // Comandos de voz disponibles
 const VOICE_COMMANDS = {
@@ -13,18 +37,24 @@ const VOICE_COMMANDS = {
   'inicio': () => goHome(),
   'ir a inicio': () => goHome(),
   'pantalla principal': () => goHome(),
+  'home': () => goHome(),
   
   'dictar': () => go(6),
   'ir a dictar': () => go(6),
   'modo dictado': () => go(6),
   
-  'historial': () => go(5),
-  'ir al historial': () => go(5),
-  'ver historial': () => go(5),
+  'historial': () => {
+    const profile = appState.activeProfile;
+    if (profile === 'blind') go(5);
+    else announce('El historial está disponible en modo ciego');
+  },
+  'ir al historial': () => VOICE_COMMANDS['historial'](),
+  'ver historial': () => VOICE_COMMANDS['historial'](),
   
   'ajustes': () => openSettings(),
   'ir a ajustes': () => openSettings(),
   'configuración': () => openSettings(),
+  'opciones': () => openSettings(),
   
   'atrás': () => goBack(),
   'regresar': () => goBack(),
@@ -34,6 +64,7 @@ const VOICE_COMMANDS = {
   'escuchar': () => speakBlindText(),
   'leer texto': () => speakBlindText(),
   'reproducir': () => speakBlindText(),
+  'leer': () => speakBlindText(),
   
   'copiar': () => copyBlindText(),
   'copiar texto': () => copyBlindText(),
@@ -41,18 +72,42 @@ const VOICE_COMMANDS = {
   'micrófono': () => toggleBlindMic(),
   'activar micrófono': () => toggleBlindMic(),
   'grabar': () => toggleBlindMic(),
+  'iniciar dictado': () => {
+    if (appState.currentScreen !== 6) {
+      go(6);
+      setTimeout(() => toggleBlindMic(), 500);
+    } else {
+      toggleBlindMic();
+    }
+  },
   
   // Frases rápidas
   'necesito ayuda': () => speakBlindPhrase('Necesito ayuda'),
   'ayuda': () => speakBlindPhrase('Necesito ayuda'),
   'emergencia': () => speakBlindPhrase('Necesito ayuda de emergencia'),
   'ayuda emergencia': () => speakBlindPhrase('Necesito ayuda de emergencia'),
+  'llamar ayuda': () => speakBlindPhrase('Necesito ayuda de emergencia'),
   
   // Control de voz
   'activar voz': () => enableVoiceCommands(),
   'desactivar voz': () => disableVoiceCommands(),
   'comandos de voz': () => toggleVoiceCommands(),
   'ayuda de comandos': () => showVoiceHelp(),
+  'ayuda': () => showVoiceHelp(),
+  'qué puedo decir': () => showVoiceHelp(),
+  'lista de comandos': () => showVoiceHelp(),
+  
+  // Información
+  'qué pantalla es esta': () => announceCurrentScreen(),
+  'pantalla actual': () => announceCurrentScreen(),
+  'dónde estoy': () => announceCurrentScreen(),
+  'información': () => announceCurrentScreen(),
+  
+  // Tutorial
+  'tutorial': () => startTutorial(),
+  'iniciar tutorial': () => startTutorial(),
+  'cómo se usa': () => startTutorial(),
+  'ayuda inicial': () => startTutorial(),
 };
 
 // Inicializar reconocimiento de voz
@@ -222,8 +277,97 @@ function announce(text, priority = 'normal') {
 }
 
 // Anunciar cambios de pantalla
-function announceScreenChange(screenName) {
-  announce('Navegando a: ' + screenName, 'high');
+function announceScreenChange(screenNumber) {
+  const screenName = SCREEN_NAMES[screenNumber] || 'Pantalla';
+  currentScreenName = screenName;
+  
+  // Anunciar nombre de pantalla y acciones disponibles
+  const actions = getAvailableActions(screenNumber);
+  announce(`${screenName}. ${actions}`, 'high');
+}
+
+// Obtener acciones disponibles por pantalla
+function getAvailableActions(screenNumber) {
+  const actions = {
+    0: 'Para comenzar, selecciona tu perfil o usa detección con IA',
+    1: 'Selecciona un perfil: Soy ciega, Soy sorda, o Soy muda',
+    2: 'La IA está analizando. Espera un momento',
+    3: 'Confirma tu perfil seleccionado',
+    4: 'Revisa las preferencias. Presiona Entrar a UNIVOZ cuando estés listo',
+    5: 'Modo ciego activo. Di "dictar" para comenzar o "ayuda" para más opciones',
+    6: 'Dictado de voz. Di "micrófono" para activar o "ayuda" para más opciones',
+    7: 'Configuración de perfil sordo',
+    8: 'Modo sordo activo',
+    9: 'Subtítulos en vivo',
+    10: 'Señas LSM',
+    11: 'Transcripción de audio',
+    12: 'Configuración de perfil mudo',
+    13: 'Modo mudo activo',
+    14: 'Texto a voz',
+    15: 'Ajustes de modo ciego',
+    16: 'Ajustes de modo sordo',
+    17: 'Ajustes de modo mudo',
+  };
+  return actions[screenNumber] || '';
+}
+
+// Anunciar pantalla actual
+function announceCurrentScreen() {
+  const screenNum = appState.currentScreen;
+  const screenName = SCREEN_NAMES[screenNum] || 'Pantalla desconocida';
+  const actions = getAvailableActions(screenNum);
+  
+  announce(`${screenName}. ${actions}`, 'high');
+}
+
+// Tutorial guiado para primera vez
+function startTutorial() {
+  disableVoiceCommands();
+  
+  const tutorialSteps = [
+    'Bienvenido a UNIVOZ. Este es un tutorial para usar la app con comandos de voz.',
+    'Paso 1: Para navegar, di el nombre de la acción. Por ejemplo: "inicio", "dictar", "ajustes".',
+    'Paso 2: Para regresar, di "atrás" o "volver".',
+    'Paso 3: Para activar el dictado, di "micrófono" o "iniciar dictado".',
+    'Paso 4: Para escuchar el texto transcrito, di "escuchar" o "leer texto".',
+    'Paso 5: En caso de emergencia, di "emergencia" o "ayuda emergencia".',
+    'Paso 6: Para ver esta ayuda nuevamente, di "tutorial" o "ayuda de comandos".',
+    'Tutorial completado. Los comandos de voz siguen activos. ¡Comienza a usar UNIVOZ!',
+  ];
+  
+  let step = 0;
+  
+  function playNextStep() {
+    if (step >= tutorialSteps.length) {
+      enableVoiceCommands();
+      return;
+    }
+    
+    announce(tutorialSteps[step], 'normal');
+    step++;
+    
+    // Esperar 4 segundos entre cada paso
+    setTimeout(playNextStep, 4000);
+  }
+  
+  playNextStep();
+}
+
+// Guía contextual inteligente
+function smartGuide() {
+  const screen = appState.currentScreen;
+  
+  // Guías específicas por pantalla
+  const guides = {
+    0: 'Bienvenido a UNIVOZ. Para comenzar, selecciona tu perfil diciendo "selección de perfil" o usa detección con IA diciendo "detectar perfil".',
+    1: 'Estás en selección de perfil. Di "soy ciega" para perfil ciego, "soy sorda" para perfil sordo, o "soy muda" para perfil mudo.',
+    5: 'Estás en el inicio de modo ciego. Di "dictar" para comenzar a dictar, "historial" para ver transcripciones anteriores, o "ajustes" para configuración.',
+    6: 'Estás en dictado de voz. Di "micrófono" para activar la grabación, "escuchar" para escuchar lo transcrito, o "copiar" para copiar el texto.',
+  };
+  
+  if (guides[screen]) {
+    announce(guides[screen], 'normal');
+  }
 }
 
 // Inicializar sistema de voz
@@ -231,10 +375,31 @@ function initVoiceSystem() {
   if (initVoiceRecognition()) {
     console.log('Sistema de voz inicializado correctamente');
     
-    // Anunciar que la app está lista
+    // Verificar si es la primera vez
+    const hasVisitedBefore = localStorage.getItem('univoz_visited');
+    
+    if (!hasVisitedBefore) {
+      // Primera visita - ofrecer tutorial
+      setTimeout(() => {
+        announce('Bienvenido a UNIVOZ. Esta es tu primera vez aquí. ¿Te gustaría escuchar un tutorial rápido? Di "tutorial" para comenzar o "omitir" para continuar.', 'normal');
+        localStorage.setItem('univoz_visited', 'true');
+        isFirstTime = false;
+      }, 2500);
+    } else {
+      // Visita recurrente
+      setTimeout(() => {
+        announce('UNIVOZ está lista. Di "activar voz" para usar comandos de voz o toca el botón de micrófono.', 'normal');
+      }, 2000);
+    }
+  }
+}
+
+// Integrar con función go() para anunciar cambios de pantalla
+function announceNavigation(screenNumber) {
+  if (voiceCommandActive) {
     setTimeout(() => {
-      announce('UNIVOZ está lista. Para activar comandos de voz, diga "activar voz" o toque el botón de micrófono.');
-    }, 2000);
+      announceScreenChange(screenNumber);
+    }, 500);
   }
 }
 
@@ -247,5 +412,9 @@ window.stopListening = stopListening;
 window.showVoiceHelp = showVoiceHelp;
 window.announce = announce;
 window.announceScreenChange = announceScreenChange;
+window.announceCurrentScreen = announceCurrentScreen;
 window.initVoiceSystem = initVoiceSystem;
 window.processVoiceCommand = processVoiceCommand;
+window.startTutorial = startTutorial;
+window.smartGuide = smartGuide;
+window.announceNavigation = announceNavigation;
